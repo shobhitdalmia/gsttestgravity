@@ -23,6 +23,7 @@ import {
   Crown,
   IndianRupee,
   HandCoins,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
@@ -198,11 +199,44 @@ function Shell() {
       <nav className="flex-1 space-y-1 overflow-y-auto px-3">
         {nav.map((n) => {
           const active = pathname === n.to || (n.to !== "/dashboard" && pathname.startsWith(n.to));
+          const isReports = n.to === "/reports";
           return (
-            <Link key={n.to} to={n.to} onClick={() => setMobileOpen(false)} className={navPill(active)}>
-              <n.icon className="h-[18px] w-[18px] shrink-0" style={{ color: active ? n.tone : undefined }} />
-              <span className="truncate">{n.label}</span>
-            </Link>
+            <div key={n.to} className="space-y-1">
+              <Link to={n.to} onClick={() => setMobileOpen(false)} className={navPill(active)}>
+                <n.icon className="h-[18px] w-[18px] shrink-0" style={{ color: active ? n.tone : undefined }} />
+                <span className="truncate">{n.label}</span>
+              </Link>
+              {isReports && active && (
+                <div className="ml-5 space-y-0.5 border-l-2 border-primary/30 pl-2 text-xs">
+                  {[
+                    { tab: "pnl", label: "Profit & Loss" },
+                    { tab: "balance-sheet", label: "Balance Sheet" },
+                    { tab: "cash-flow", label: "Cash Flow" },
+                    { tab: "trial-balance", label: "Trial Balance" },
+                    { tab: "ledger", label: "Ledger" },
+                  ].map((sub) => {
+                    const currentTab = typeof window !== "undefined" ? (new URLSearchParams(window.location.search).get("tab") || "balance-sheet") : "balance-sheet";
+                    const isSubActive = isReports && currentTab === sub.tab;
+                    return (
+                      <Link
+                        key={sub.tab}
+                        to="/reports"
+                        search={{ tab: sub.tab }}
+                        onClick={() => setMobileOpen(false)}
+                        className={`flex items-center gap-1.5 rounded-md px-2 py-1.5 font-medium transition ${
+                          isSubActive
+                            ? "bg-primary/10 text-primary font-bold"
+                            : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                        }`}
+                      >
+                        <ChevronRight className="h-3 w-3 shrink-0 opacity-70" />
+                        <span className="truncate">{sub.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           );
         })}
 
