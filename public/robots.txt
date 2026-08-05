@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /auth
+Disallow: /dashboard
+Disallow: /sales
+Disallow: /purchases
+Disallow: /products
+Disallow: /parties
+Disallow: /expenses
+Disallow: /reports
+Disallow: /settings
