@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { extractPurchaseBill } from "@/lib/bill-ocr.functions";
+import { safeRandomUUID } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/purchases/")({
   head: () => ({ meta: [{ title: "Purchase Register — GST Munshi" }] }),
@@ -112,7 +113,7 @@ function PurchasesList() {
     try {
       const fileBase64 = await fileToBase64(file);
       const bill = await extract({ data: { fileBase64, mimeType: file.type } });
-      const draftId = crypto.randomUUID();
+      const draftId = safeRandomUUID();
       sessionStorage.setItem(`bill-draft-${draftId}`, JSON.stringify(bill));
       toast.success("Bill extract ho gaya! Review karke Save dabaayein.");
       navigate({ to: "/purchases/new", search: { draft: draftId } as any });

@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { toast } from "sonner";
 import { Trash2, Plus, Save, Sparkles } from "lucide-react";
 import { computeLine, formatINR, round2, GST_RATES, INDIAN_STATES } from "@/lib/gst";
+import { safeRandomUUID } from "@/lib/utils";
 import { postPurchaseVoucher } from "@/lib/accounting.functions";
 import type { ExtractedBill } from "@/lib/bill-ocr.functions";
 
@@ -35,7 +36,7 @@ interface Line {
   gstRate: number;
   ai?: boolean;
 }
-const emptyLine = (): Line => ({ key: crypto.randomUUID(), name: "", quantity: 1, rate: 0, gstRate: 18 });
+const emptyLine = (): Line => ({ key: safeRandomUUID(), name: "", quantity: 1, rate: 0, gstRate: 18 });
 
 const AI_GST_RATES = [0, 0.25, 3, 5, 12, 18, 28];
 const nearestGst = (r: number) => AI_GST_RATES.reduce((a, b) => (Math.abs(b - r) < Math.abs(a - r) ? b : a), 18);
@@ -126,7 +127,7 @@ function NewPurchase() {
               || p.name.toLowerCase() === it.name.toLowerCase(),
           );
           return {
-            key: crypto.randomUUID(),
+            key: safeRandomUUID(),
             product_id: match?.id ?? null,
             name: it.name,
             hsn_code: it.hsn_code ?? match?.hsn_code ?? "",

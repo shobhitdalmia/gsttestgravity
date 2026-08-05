@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { Trash2, Plus, Save, FileText, Truck } from "lucide-react";
 import { computeLine, formatINR, round2, GST_RATES, INDIAN_STATES } from "@/lib/gst";
 import { postInvoiceVoucher } from "@/lib/accounting.functions";
+import { safeRandomUUID } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/sales/new")({
   head: () => ({ meta: [{ title: "New Invoice — GST Munshi" }] }),
@@ -36,7 +37,7 @@ interface Line {
 type DocType = "tax_invoice" | "bill_of_supply";
 
 function emptyLine(): Line {
-  return { key: crypto.randomUUID(), name: "", quantity: 1, rate: 0, discountPct: 0, gstRate: 18 };
+  return { key: safeRandomUUID(), name: "", quantity: 1, rate: 0, discountPct: 0, gstRate: 18 };
 }
 
 function nowTimeLabel() {
