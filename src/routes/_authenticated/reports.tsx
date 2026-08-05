@@ -336,7 +336,7 @@ function BalanceSheetDashboard({ companyName }: { companyName: string }) {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-border/80 pb-4">
         <div>
           <h1 className="font-display text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
-            Balance Sheet Dashboard
+            Balance Sheet
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground">
             Financial position and capital structure breakdown as of active period.
