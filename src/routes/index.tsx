@@ -61,7 +61,7 @@ function Landing() {
     <div className="min-h-screen bg-background text-foreground selection:bg-primary/20 selection:text-primary">
       {/* Header */}
       <header className="border-b border-border/60 bg-background/90 backdrop-blur-md sticky top-0 z-50 shadow-xs">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-6">
+        <div className="mx-auto flex max-w-[1600px] w-full items-center justify-between px-4 py-3 md:px-6">
           {/* Logo / Home Button */}
           <Link
             to="/"
@@ -196,7 +196,7 @@ function Landing() {
           }}
         />
 
-        <div className="mx-auto max-w-7xl px-4 md:px-6">
+        <div className="mx-auto max-w-[1600px] w-full px-4 md:px-6">
           <div className="grid gap-12 lg:grid-cols-12 items-center">
             {/* Left Content */}
             <div className="lg:col-span-7 text-center lg:text-left">
@@ -339,7 +339,7 @@ function Landing() {
 
       {/* Trust & Stats Counter Bar */}
       <section className="border-y border-border/60 bg-muted/30 py-10">
-        <div className="mx-auto max-w-7xl px-4 md:px-6">
+        <div className="mx-auto max-w-[1600px] w-full px-4 md:px-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             <div>
               <div className="font-display text-3xl md:text-4xl font-extrabold text-foreground">10,000+</div>
@@ -363,7 +363,7 @@ function Landing() {
 
       {/* Interactive Demo Section */}
       <section id="demo" className="py-20 bg-background">
-        <div className="mx-auto max-w-7xl px-4 md:px-6">
+        <div className="mx-auto max-w-[1600px] w-full px-4 md:px-6">
           <div className="text-center max-w-3xl mx-auto">
             <span className="text-xs font-bold uppercase tracking-wider text-primary">Interactive Preview</span>
             <h2 className="mt-2 font-display text-3xl sm:text-4xl font-bold">
@@ -375,7 +375,7 @@ function Landing() {
           </div>
 
           {/* Tabs header */}
-          <div className="mt-10 flex flex-wrap justify-center gap-2 border-b border-border pb-4">
+          <div className="mt-10 flex overflow-x-auto sm:flex-wrap justify-start sm:justify-center gap-2 border-b border-border pb-4 w-full scrollbar-none snap-x snap-mandatory px-4 sm:px-0">
             {[
               { id: "billing", label: "📄 Billing & Tax Invoices", icon: Receipt },
               { id: "inventory", label: "📦 Inventory & Stock", icon: Boxes },
@@ -385,7 +385,7 @@ function Landing() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all ${
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all shrink-0 snap-center ${
                   activeTab === tab.id
                     ? "bg-primary text-primary-foreground shadow-md"
                     : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
@@ -398,7 +398,7 @@ function Landing() {
           </div>
 
           {/* Tab Content Display */}
-          <div className="mt-8 max-w-5xl mx-auto card-surface p-6 md:p-8 rounded-2xl border border-border bg-card shadow-xl">
+          <div className="mt-8 max-w-none w-full mx-auto card-surface p-6 md:p-8 rounded-2xl border border-border bg-card shadow-xl">
             {activeTab === "billing" && (
               <div className="space-y-6 animate-in fade-in duration-300">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 border-b border-border gap-4">
@@ -586,7 +586,7 @@ function Landing() {
 
       {/* Kaise Kaam Karta Hai (3 Steps) */}
       <section id="how-it-works" className="py-20 bg-muted/20 border-y border-border/60">
-        <div className="mx-auto max-w-7xl px-4 md:px-6">
+        <div className="mx-auto max-w-[1600px] w-full px-4 md:px-6">
           <div className="text-center max-w-3xl mx-auto">
             <span className="text-xs font-bold uppercase tracking-wider text-primary">Simple 3-Step Process</span>
             <h2 className="mt-2 font-display text-3xl sm:text-4xl font-bold">
@@ -642,7 +642,7 @@ function Landing() {
 
       {/* Feature Cards Grid */}
       <section id="features" className="py-20 bg-background">
-        <div className="mx-auto max-w-7xl px-4 md:px-6">
+        <div className="mx-auto max-w-[1600px] w-full px-4 md:px-6">
           <div className="text-center max-w-3xl mx-auto">
             <span className="text-xs font-bold uppercase tracking-wider text-primary">All-in-One Capabilities</span>
             <h2 className="mt-2 font-display text-3xl sm:text-4xl font-bold">
@@ -703,7 +703,7 @@ function Landing() {
 
       {/* Customer Reviews / Testimonials */}
       <section id="reviews" className="py-20 bg-muted/20 border-y border-border/60">
-        <div className="mx-auto max-w-7xl px-4 md:px-6">
+        <div className="mx-auto max-w-[1600px] w-full px-4 md:px-6">
           <div className="text-center max-w-3xl mx-auto">
             <span className="text-xs font-bold uppercase tracking-wider text-primary">Customer Testimonials</span>
             <h2 className="mt-2 font-display text-3xl sm:text-4xl font-bold">
@@ -758,7 +758,7 @@ function Landing() {
 
       {/* FAQ Section */}
       <section id="faq" className="py-20 bg-background">
-        <div className="mx-auto max-w-4xl px-4 md:px-6">
+        <div className="mx-auto max-w-[1100px] w-full px-4 md:px-6">
           <div className="text-center">
             <span className="text-xs font-bold uppercase tracking-wider text-primary">Frequently Asked Questions</span>
             <h2 className="mt-2 font-display text-3xl sm:text-4xl font-bold">
@@ -816,7 +816,7 @@ function Landing() {
       </section>
 
       {/* CTA Section */}
-      <section className="mx-auto max-w-7xl px-4 md:px-6 pb-20">
+      <section className="mx-auto max-w-[1600px] w-full px-4 md:px-6 pb-20">
         <div className="relative overflow-hidden rounded-3xl p-10 md:p-16 text-white text-center shadow-2xl bg-gradient-to-r from-primary via-teal-700 to-emerald-700">
           <div className="relative z-10 max-w-3xl mx-auto">
             <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight">
@@ -839,7 +839,7 @@ function Landing() {
 
       {/* Comprehensive Footer */}
       <footer className="border-t border-border bg-card/80 text-foreground pt-16 pb-12">
-        <div className="mx-auto max-w-7xl px-4 md:px-6">
+        <div className="mx-auto max-w-[1600px] w-full px-4 md:px-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-12 border-b border-border/60">
             {/* Col 1: Brand Info */}
             <div className="lg:col-span-2 space-y-4">
@@ -887,19 +887,19 @@ function Landing() {
               </h4>
               <ul className="space-y-2 text-xs sm:text-sm text-muted-foreground">
                 <li>
-                  <button onClick={() => setLegalModal("terms")} className="hover:text-primary transition-colors text-left">
+                  <Link to="/terms" className="hover:text-primary transition-colors block text-left">
                     Terms & Conditions
-                  </button>
+                  </Link>
                 </li>
                 <li>
-                  <button onClick={() => setLegalModal("privacy")} className="hover:text-primary transition-colors text-left">
+                  <Link to="/privacy" className="hover:text-primary transition-colors block text-left">
                     Privacy Policy
-                  </button>
+                  </Link>
                 </li>
                 <li>
-                  <button onClick={() => setLegalModal("refund")} className="hover:text-primary transition-colors text-left">
+                  <Link to="/refund" className="hover:text-primary transition-colors block text-left">
                     Refund & Cancellation Policy
-                  </button>
+                  </Link>
                 </li>
                 <li><a href="#faq" className="hover:text-primary transition-colors">Help & FAQ Center</a></li>
                 <li><Link to="/auth" className="hover:text-primary transition-colors">User Login</Link></li>
@@ -936,17 +936,17 @@ function Landing() {
               © {new Date().getFullYear()} GSTMunshi.com. All rights reserved. Registered trademark.
             </div>
             <div className="flex gap-4">
-              <button onClick={() => setLegalModal("terms")} className="hover:underline">
+              <Link to="/terms" className="hover:underline">
                 Terms of Service
-              </button>
+              </Link>
               <span>•</span>
-              <button onClick={() => setLegalModal("privacy")} className="hover:underline">
+              <Link to="/privacy" className="hover:underline">
                 Privacy Policy
-              </button>
+              </Link>
               <span>•</span>
-              <button onClick={() => setLegalModal("refund")} className="hover:underline">
-                Security & GST Compliance
-              </button>
+              <Link to="/refund" className="hover:underline">
+                Refund Policy
+              </Link>
             </div>
           </div>
         </div>

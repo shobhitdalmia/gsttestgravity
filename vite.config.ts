@@ -22,6 +22,11 @@ export default defineConfig({
       serverDir: ".vercel/output/functions/__server.func",
       publicDir: ".vercel/output/static",
     },
+    rollupConfig: {
+      output: {
+        manualChunks: undefined,
+      },
+    },
   },
   vite: {
     resolve: {

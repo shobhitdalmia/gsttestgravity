@@ -276,3 +276,12 @@
   background-color: var(--color-card);
   box-shadow: var(--shadow-kpi);
 }
+
+@utility scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
