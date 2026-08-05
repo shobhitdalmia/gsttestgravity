@@ -324,11 +324,12 @@ function AuthPage() {
         className="hidden md:flex flex-col justify-between p-10 text-primary-foreground"
         style={{ background: "var(--gradient-hero)" }}
       >
-        <Link to="/" className="flex items-center gap-2 font-display text-lg font-bold">
-          <div className="grid h-9 w-9 place-items-center rounded-xl bg-primary-foreground/15">
-            <IndianRupee className="h-5 w-5" />
-          </div>
-          GST Munshi
+        <Link to="/" className="inline-block">
+          <img
+            src="/logo.jpg"
+            alt="GSTMunshi Logo"
+            className="w-[200px] h-[100px] object-contain rounded-lg bg-white/95 p-1 shadow-sm"
+          />
         </Link>
         <div>
           <h2 className="font-display text-3xl font-bold leading-tight">
@@ -343,11 +344,14 @@ function AuthPage() {
 
       <div className="flex items-center justify-center p-6">
         <div className="w-full max-w-sm">
-          <div className="md:hidden mb-6 flex items-center gap-2 font-display font-bold">
-            <div className="grid h-9 w-9 place-items-center rounded-xl bg-primary text-primary-foreground">
-              <IndianRupee className="h-5 w-5" />
-            </div>
-            GST Munshi
+          <div className="md:hidden mb-6 flex justify-center">
+            <Link to="/">
+              <img
+                src="/logo.jpg"
+                alt="GSTMunshi Logo"
+                className="w-[200px] h-[100px] object-contain rounded-lg"
+              />
+            </Link>
           </div>
 
           {mode === "tabs" && (
