@@ -31,6 +31,9 @@ import {
   Shield,
   FileCode,
   Layers,
+  Laptop,
+  RefreshCw,
+  CalendarRange,
 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
@@ -65,24 +68,14 @@ function Landing() {
           {/* Logo / Home Button */}
           <Link
             to="/"
-            className="flex items-center gap-3 transition-opacity hover:opacity-90 group"
+            className="flex items-center transition-opacity hover:opacity-90 group"
             title="GSTMunshi.com Home"
           >
-            <div className="relative overflow-hidden rounded-xl border border-border/60 bg-white p-1 shadow-xs transition-transform group-hover:scale-105">
-              <img
-                src="/logo.jpg"
-                alt="GSTMunshi.com Logo"
-                className="h-10 md:h-12 w-auto object-contain rounded-lg"
-              />
-            </div>
-            <div className="hidden sm:block">
-              <div className="font-display text-lg font-bold tracking-tight text-foreground flex items-center gap-1">
-                GSTMunshi<span className="text-primary">.com</span>
-              </div>
-              <p className="text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
-                Sahi Hisab, Pakka Vishwas
-              </p>
-            </div>
+            <img
+              src="/logo.jpg"
+              alt="GSTMunshi.com Logo"
+              className="w-[200px] h-[100px] object-contain rounded-lg"
+            />
           </Link>
 
           {/* Desktop Nav Links */}
@@ -584,6 +577,59 @@ function Landing() {
         </div>
       </section>
 
+      {/* Run Your Business from Anywhere Section */}
+      <section className="py-20 bg-background overflow-hidden border-t border-border/60">
+        <div className="mx-auto max-w-[1600px] w-full px-4 md:px-6">
+          <div className="grid gap-12 lg:grid-cols-12 items-center">
+            {/* Left Content */}
+            <div className="lg:col-span-6 text-center lg:text-left space-y-6">
+              <span className="text-xs font-bold uppercase tracking-wider text-primary">Multi-Device Access</span>
+              <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-foreground leading-[1.15]">
+                Run Your Business <br className="hidden sm:inline" />
+                from Anywhere
+              </h2>
+              <p className="text-base text-muted-foreground max-w-xl mx-auto lg:mx-0 leading-relaxed">
+                Whether you're at the shop, at home, or on the move, your business stays with you on every device.
+              </p>
+              
+              <div className="space-y-4 pt-4 max-w-md mx-auto lg:mx-0 text-left">
+                {[
+                  { label: "Available on PC, Web, Android & iOS", icon: Laptop },
+                  { label: "Real-Time Sync Across Devices", icon: RefreshCw },
+                  { label: "Access Business Data Anytime", icon: CalendarRange },
+                  { label: "Multi-User Access for Teams", icon: Users },
+                ].map((feat, index) => (
+                  <div key={index} className="flex items-center gap-4">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary shadow-xs">
+                      <feat.icon className="h-5 w-5" />
+                    </div>
+                    <span className="text-sm sm:text-base font-semibold text-foreground">{feat.label}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="pt-6">
+                <Link to="/auth">
+                  <Button size="lg" className="w-full sm:w-auto gap-2 text-base px-8 h-12 shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90 text-primary-foreground rounded-full">
+                    Sign up for free <ArrowRight className="h-5 w-5" />
+                  </Button>
+                </Link>
+              </div>
+            </div>
+
+            {/* Right Side Mockup */}
+            <div className="lg:col-span-6 relative">
+              <div className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-primary to-accent opacity-15 blur-2xl"></div>
+              <img
+                src="/device_mockup.jpg"
+                alt="GST Munshi on Laptop and Mobile"
+                className="relative mx-auto max-w-full h-auto rounded-2xl shadow-2xl border border-border/80 object-cover"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Kaise Kaam Karta Hai (3 Steps) */}
       <section id="how-it-works" className="py-20 bg-muted/20 border-y border-border/60">
         <div className="mx-auto max-w-[1600px] w-full px-4 md:px-6">
@@ -843,20 +889,12 @@ function Landing() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-12 border-b border-border/60">
             {/* Col 1: Brand Info */}
             <div className="lg:col-span-2 space-y-4">
-              <Link to="/" className="flex items-center gap-3" title="GSTMunshi.com Home">
+              <Link to="/" className="inline-block" title="GSTMunshi.com Home">
                 <img
                   src="/logo.jpg"
                   alt="GSTMunshi.com Logo"
-                  className="h-12 w-auto object-contain rounded-lg border border-border/60 bg-white p-1"
+                  className="w-[200px] h-[100px] object-contain rounded-lg"
                 />
-                <div>
-                  <div className="font-display text-xl font-extrabold tracking-tight">
-                    GSTMunshi<span className="text-primary">.com</span>
-                  </div>
-                  <p className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
-                    Sahi Hisab, Pakka Vishwas
-                  </p>
-                </div>
               </Link>
               <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-sm">
                 India ka trusted GST billing, inventory & accounting software for dukaandars, retailers, wholesalers, and small enterprises.

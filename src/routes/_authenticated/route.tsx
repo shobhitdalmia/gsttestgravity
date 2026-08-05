@@ -137,21 +137,12 @@ function Shell() {
 
   const SidebarInner = (
     <>
-      <div className="flex items-center gap-2.5 px-4 py-5">
-        <div
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-white shadow-sm"
-          style={{ background: "linear-gradient(135deg, var(--kpi-emerald) 0%, var(--kpi-teal) 100%)" }}
-        >
-          <IndianRupee className="h-5 w-5" />
-        </div>
-        <div className="min-w-0">
-          <div className="truncate font-display text-[17px] font-extrabold leading-tight text-sidebar-foreground">
-            GST Munshi
-          </div>
-          <div className="truncate text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-            Sahi hisab, pakka vishwas
-          </div>
-        </div>
+      <div className="flex justify-center px-4 py-5">
+        <img
+          src="/logo.jpg"
+          alt="GSTMunshi Logo"
+          className="w-[200px] h-[100px] object-contain rounded-lg"
+        />
       </div>
 
       <div className="mx-3 mb-3">

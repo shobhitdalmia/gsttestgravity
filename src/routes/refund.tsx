@@ -20,22 +20,12 @@ function LegalHeader() {
   return (
     <header className="border-b border-border/60 bg-background/90 backdrop-blur-md sticky top-0 z-50 shadow-xs">
       <div className="mx-auto flex max-w-[1600px] w-full items-center justify-between px-4 py-3 md:px-6">
-        <Link to="/" className="flex items-center gap-3 transition-opacity hover:opacity-90">
-          <div className="relative overflow-hidden rounded-xl border border-border/60 bg-white p-1 shadow-xs">
-            <img
-              src="/logo.jpg"
-              alt="GSTMunshi.com Logo"
-              className="h-10 md:h-12 w-auto object-contain rounded-lg"
-            />
-          </div>
-          <div>
-            <div className="font-display text-lg font-bold tracking-tight text-foreground flex items-center gap-1">
-              GSTMunshi<span className="text-primary">.com</span>
-            </div>
-            <p className="text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
-              Sahi Hisab, Pakka Vishwas
-            </p>
-          </div>
+        <Link to="/" className="flex items-center transition-opacity hover:opacity-90">
+          <img
+            src="/logo.jpg"
+            alt="GSTMunshi.com Logo"
+            className="w-[200px] h-[100px] object-contain rounded-lg"
+          />
         </Link>
         <Link to="/">
           <Button variant="ghost" size="sm" className="gap-2 font-medium">
