@@ -952,14 +952,19 @@ function Landing() {
               <div className="space-y-2.5 text-xs sm:text-sm text-muted-foreground">
                 <div className="flex items-center gap-2">
                   <Mail className="h-4 w-4 text-primary shrink-0" />
-                  <a href="mailto:support@gstmunshi.com" className="hover:text-primary transition-colors">
+                  <a href="mailto:info@gstmunshi.com" className="hover:text-primary transition-colors">
                     support@gstmunshi.com
                   </a>
                 </div>
                 <div className="flex items-center gap-2">
-                  <PhoneCall className="h-4 w-4 text-primary shrink-0" />
-                  <span>+91 98765 43210 (Mon-Sat, 9AM-7PM)</span>
-                </div>
+  <PhoneCall className="h-4 w-4 text-primary shrink-0" />
+  <a
+    href="tel:+919310811555"
+    className="hover:text-primary cursor-pointer transition-colors"
+  >
+    +91 9310811555 (Mon-Sat, 9AM-7PM)
+  </a>
+</div>
                 <div className="flex items-start gap-2 pt-1">
                   <Building2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                   <span>GSTMunshi Tech Towers, New Delhi, India</span>
