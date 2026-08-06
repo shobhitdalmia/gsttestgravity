@@ -17,6 +17,9 @@ export default defineConfig({
   },
   nitro: {
     preset: "vercel",
+    externals: {
+      inline: ["nodemailer"],
+    },
     output: {
       dir: ".vercel/output",
       serverDir: ".vercel/output/functions/__server.func",

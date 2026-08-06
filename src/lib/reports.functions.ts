@@ -161,40 +161,36 @@ export const sendReportEmailServerFn = createServerFn({ method: "POST" })
 `;
 
     // 1. Direct Hostinger SMTP using Nodemailer
-    if (SMTP_PASS) {
-      try {
-        const req = typeof eval !== "undefined" ? eval("require") : null;
-        const nodemailer = req ? req("nodemailer") : null;
+    const smtpPass = SMTP_PASS || "Info@22911555$";
+    try {
+      const nodemailerMod = await import("nodemailer");
+      const nodemailer = nodemailerMod.default || nodemailerMod;
 
-        if (nodemailer) {
-          const transporter = nodemailer.createTransport({
-            host: SMTP_HOST,
-            port: SMTP_PORT,
-            secure: SMTP_PORT === 465,
-            auth: {
-              user: SMTP_USER,
-              pass: SMTP_PASS,
-            },
-          });
+      const transporter = nodemailer.createTransport({
+        host: SMTP_HOST,
+        port: SMTP_PORT,
+        secure: true, // SSL for Port 465
+        auth: {
+          user: SMTP_USER,
+          pass: smtpPass,
+        },
+      });
 
-          const info = await transporter.sendMail({
-            from: `"GST Munshi Reports" <${SMTP_USER}>`,
-            to: toEmail,
-            subject: formattedSubject,
-            html: emailHtmlBody,
-          });
+      const info = await transporter.sendMail({
+        from: `"GST Munshi Reports" <${SMTP_USER}>`,
+        to: toEmail,
+        subject: formattedSubject,
+        html: emailHtmlBody,
+      });
 
-          console.log("[Hostinger SMTP] Email sent successfully:", info.messageId);
-          return { success: true, provider: "hostinger-smtp", messageId: info.messageId, from: SMTP_USER };
-        }
-      } catch (err: any) {
-        console.error("[Hostinger SMTP] Error:", err);
-      }
+      console.log("[Hostinger SMTP] Email sent successfully:", info.messageId);
+      return { success: true, provider: "hostinger-smtp", messageId: info.messageId, from: SMTP_USER };
+    } catch (err: any) {
+      console.error("[Hostinger SMTP] Error:", err);
+      return {
+        success: false,
+        provider: "hostinger-smtp",
+        reason: err instanceof Error ? err.message : String(err),
+      };
     }
-
-    return {
-      success: false,
-      provider: "hostinger-smtp",
-      reason: "Hostinger SMTP password (SMTP_PASS) environment variable is missing.",
-    };
   });

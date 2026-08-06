@@ -1910,7 +1910,7 @@ function ReportsActionDock({
     toast.success(`Tally XML format exported successfully! You can directly import this into Tally Prime via Import Data.`);
   };
 
-  // HANDLE EMAIL DISPATCH (DIRECT RESEND API — NO SUPABASE OTP / MAGIC LINK)
+  // HANDLE EMAIL DISPATCH (DIRECT FROM SERVER VIA HOSTINGER SMTP INFO@GSTMUNSHI.COM)
   const handleSendEmail = async () => {
     if (!emailTo || !emailTo.includes("@")) {
       toast.error("Please enter a valid email address");
@@ -1922,7 +1922,7 @@ function ReportsActionDock({
     try {
       const customSubject = `Ledger From ${companyName} (${periodLabel || "FY 2025-26"})`;
 
-      const result = await sendReportEmailServerFn({
+      const res = await sendReportEmailServerFn({
         data: {
           toEmail: emailTo,
           companyName,
@@ -1934,10 +1934,10 @@ function ReportsActionDock({
         },
       });
 
-      if (result?.success) {
+      if (res?.success) {
         toast.success(`Balance Sheet email sent from info@gstmunshi.com to ${emailTo}!`, { id: toastId });
       } else {
-        throw new Error("Email dispatch returned unsuccessful");
+        toast.error(`Email error: ${res?.reason || "Hostinger SMTP check failed"}`, { id: toastId });
       }
     } catch (err: any) {
       console.error("Email send error:", err);
