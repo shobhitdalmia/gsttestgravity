@@ -136,9 +136,6 @@ function ReportsPage() {
           <LedgerView companyId={companyId} navigate={navigate} />
         </TabsContent>
       </Tabs>
-
-      {/* FLOATING ACTION DOCK BAR (PRINT, E-MAIL, DOWNLOAD, EXPORT TO EXCEL & TALLY) */}
-      <ReportsActionDock currentTab={currentTab} companyName={companyName} />
     </div>
   );
 }
@@ -1786,7 +1783,7 @@ function ReportsActionDock({
     setShowPrintModal(false);
     setTimeout(() => {
       window.print();
-    }, 200);
+    }, 250);
   };
 
   // HANDLE CSV / REPORT FILE DOWNLOAD (EXACT LIVE SCREEN DATA MATCHING USER SCREENSHOT 1 & 2)
@@ -1912,14 +1909,44 @@ function ReportsActionDock({
     toast.success(`Tally XML format exported successfully! You can directly import this into Tally Prime via Import Data.`);
   };
 
-  // HANDLE EMAIL DISPATCH
-  const handleSendEmail = () => {
+  // HANDLE EMAIL DISPATCH (WITH SUPABASE SMTP & MAILTO FALLBACK)
+  const handleSendEmail = async () => {
     if (!emailTo || !emailTo.includes("@")) {
       toast.error("Please enter a valid email address");
       return;
     }
+
+    const toastId = toast.loading(`Dispatching ${tabTitle} to ${emailTo}...`);
+
+    try {
+      const { error } = await supabase.functions.invoke("send-report-email", {
+        body: {
+          to: emailTo,
+          subject: `${tabTitle} — ${companyName}`,
+          companyName,
+          tabTitle,
+          realData,
+          periodLabel,
+        },
+      });
+
+      if (error) throw error;
+      toast.success(`Email report sent to ${emailTo}!`, { id: toastId });
+    } catch (err: any) {
+      console.warn("Supabase edge function fallback to client mailto:", err);
+      const subject = encodeURIComponent(`${tabTitle} — ${companyName}`);
+      const bodyText = encodeURIComponent(
+        `Dear CA / Team,\n\nPlease find the ${tabTitle} details for ${companyName} (${periodLabel || "FY 2025-26"}):\n\n` +
+        `Total Assets: ${formatINR(realData?.totalAssets || 0)}\n` +
+        `Total Equity & Liabilities: ${formatINR(realData?.totalLiabilitiesAndEquity || 0)}\n` +
+        `Working Capital: ${formatINR(realData?.workingCapital || 0)}\n\n` +
+        `Generated via GST Munshi Financial platform.`
+      );
+      window.location.href = `mailto:${emailTo}?subject=${subject}&body=${bodyText}`;
+      toast.success(`Email client opened for ${emailTo}!`, { id: toastId });
+    }
+
     setShowEmailModal(false);
-    toast.success(`Email report dispatched to ${emailTo}!`);
     setEmailTo("");
   };
 
@@ -1954,16 +1981,7 @@ function ReportsActionDock({
             <Mail className="h-4 w-4" /> E-Mail
           </Button>
 
-          {/* 3. Download Button (THEME GREEN OUTLINE) */}
-          <Button
-            variant="outline"
-            onClick={handleDownload}
-            className="border-emerald-600/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 text-xs sm:text-sm"
-          >
-            <Download className="h-4 w-4" /> Download BS1
-          </Button>
-
-          {/* 4. Export Button (THEME GREEN ACCENT OUTLINE) */}
+          {/* 3. Export Button (THEME GREEN ACCENT OUTLINE) */}
           <Button
             variant="outline"
             onClick={() => setShowExportModal(true)}

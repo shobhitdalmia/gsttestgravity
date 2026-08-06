@@ -188,12 +188,15 @@
     font-family: system-ui, -apple-system, sans-serif !important;
   }
 
-  /* Hide navigation, sidebars, headers, floating bars, and non-print UI */
+  /* Hide navigation, sidebars, headers, dialog popups, portals, floating bars, and non-print UI */
   header, nav, sidebar, footer,
   .no-print, .no-print *,
   [role="navigation"],
+  [role="dialog"],
+  [data-radix-portal],
   [data-aria-hidden="true"] {
     display: none !important;
+    visibility: hidden !important;
   }
 
   /* Force print container visibility */
