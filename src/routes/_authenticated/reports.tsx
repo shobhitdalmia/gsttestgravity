@@ -1509,6 +1509,10 @@ function ProfitAndLossView({ companyId, fyLabelText }: { companyId?: string; fyL
   });
 
   // Real Figures Calculation — PURE DATABASE FIGURES (ZERO FALLBACK DUMMY DATA)
+  const realSalesTotal = (invoices ?? []).reduce((acc, i) => acc + Number(i.subtotal || i.total || 0), 0);
+  const realPurchasesTotal = (purchases ?? []).reduce((acc, p) => acc + Number(p.subtotal || p.total || 0), 0);
+  const realExpensesTotal = (expenses ?? []).reduce((acc, e) => acc + Number(e.amount || 0), 0);
+
   const revFromOps = realSalesTotal;
   const othIncome = (lines.data ?? [])
     .filter((l) => Number(l.credit || 0) > 0 && Number(l.debit || 0) === 0)
