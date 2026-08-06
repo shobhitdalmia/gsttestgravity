@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLedgerGroups, useLedgers, useVoucherLines, buildBalances } from "@/lib/accounting";
+import { sendReportEmailServerFn } from "@/lib/reports.functions";
 import {
   ResponsiveContainer,
   LineChart,
@@ -1909,41 +1910,35 @@ function ReportsActionDock({
     toast.success(`Tally XML format exported successfully! You can directly import this into Tally Prime via Import Data.`);
   };
 
-  // HANDLE EMAIL DISPATCH (WITH SUPABASE SMTP & MAILTO FALLBACK)
+  // HANDLE EMAIL DISPATCH (100% DIRECT FROM SERVER NO LOCAL OUTLOOK)
   const handleSendEmail = async () => {
     if (!emailTo || !emailTo.includes("@")) {
       toast.error("Please enter a valid email address");
       return;
     }
 
-    const toastId = toast.loading(`Dispatching ${tabTitle} to ${emailTo}...`);
+    const toastId = toast.loading(`Dispatching ${tabTitle} to ${emailTo} from noreply@gstmunshi.com...`);
 
     try {
-      const { error } = await supabase.functions.invoke("send-report-email", {
-        body: {
-          to: emailTo,
-          subject: `${tabTitle} — ${companyName}`,
+      // Dynamic Subject format requested by user: 'Ledger From [Company/Party Name] [Date Range]'
+      const customSubject = `Ledger From ${companyName} (${periodLabel || "FY 2025-26"})`;
+
+      await sendReportEmailServerFn({
+        data: {
+          toEmail: emailTo,
           companyName,
-          tabTitle,
+          reportType: tabTitle,
+          dateRange: periodLabel || "FY 2025-26",
+          subject: customSubject,
           realData,
-          periodLabel,
+          compData,
         },
       });
 
-      if (error) throw error;
-      toast.success(`Email report sent to ${emailTo}!`, { id: toastId });
+      toast.success(`Email report dispatched directly from server to ${emailTo}!`, { id: toastId });
     } catch (err: any) {
-      console.warn("Supabase edge function fallback to client mailto:", err);
-      const subject = encodeURIComponent(`${tabTitle} — ${companyName}`);
-      const bodyText = encodeURIComponent(
-        `Dear CA / Team,\n\nPlease find the ${tabTitle} details for ${companyName} (${periodLabel || "FY 2025-26"}):\n\n` +
-        `Total Assets: ${formatINR(realData?.totalAssets || 0)}\n` +
-        `Total Equity & Liabilities: ${formatINR(realData?.totalLiabilitiesAndEquity || 0)}\n` +
-        `Working Capital: ${formatINR(realData?.workingCapital || 0)}\n\n` +
-        `Generated via GST Munshi Financial platform.`
-      );
-      window.location.href = `mailto:${emailTo}?subject=${subject}&body=${bodyText}`;
-      toast.success(`Email client opened for ${emailTo}!`, { id: toastId });
+      console.error("Server email send error:", err);
+      toast.error("Failed to send server email. Please check SMTP configuration.", { id: toastId });
     }
 
     setShowEmailModal(false);
