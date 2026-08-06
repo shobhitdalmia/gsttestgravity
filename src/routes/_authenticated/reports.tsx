@@ -478,9 +478,8 @@ function BalanceSheetDashboard({
     };
   }, [invoices.data, purchases.data, expenses.data, products.data, payments.data, scheduleValuesFromLedgers]);
 
-  // REAL COMPUTATIONS FOR COMPARISON PERIOD
+  // REAL COMPUTATIONS FOR COMPARISON PERIOD (e.g. 31 Mar 2025)
   const compData = useMemo(() => {
-    if (compareMode === "none") return null;
     const invList = compInvoices.data ?? [];
     const purchList = compPurchases.data ?? [];
 
@@ -492,16 +491,30 @@ function BalanceSheetDashboard({
     const tradeReceivables = Math.max(0, totalSales - salesPaid);
     const tradePayables = Math.max(0, totalPurchases - purchasesPaid);
     const currentAssets = tradeReceivables;
+    const totalAssets = currentAssets;
 
     return {
       totalSales,
       totalPurchases,
       tradeReceivables,
       tradePayables,
+      inventories: 0,
+      cashBankBalance: 0,
+      propertyPlantEquip: 0,
+      intangibleAssets: 0,
+      investments: 0,
+      longTermLoans: 0,
+      nonCurrentAssets: 0,
       currentAssets,
-      totalAssets: currentAssets,
+      totalAssets,
+      shareCapital: 0,
+      reservesSurplus: 0,
+      totalEquity: 0,
+      nonCurrentLiabilities: 0,
+      currentLiabilities: tradePayables,
+      totalLiabilitiesAndEquity: tradePayables,
     };
-  }, [compInvoices.data, compPurchases.data, compareMode]);
+  }, [compInvoices.data, compPurchases.data]);
 
   // Percentage change helper
   const pctDiff = (curr: number, prev?: number) => {
@@ -898,17 +911,17 @@ function BalanceSheetDashboard({
         </div>
       </div>
 
-      {/* 2 COLUMN DETAILED SCHEDULE TABLES WITH COLOR CODING & LEDGER LINKS */}
+      {/* DETAILED SCHEDULE TABLES MATCHING USER SCREENSHOT LAYOUT */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Column 1: ASSETS Schedule (GREEN TINT) */}
         <div className="lg:col-span-6 rounded-2xl border border-emerald-500/30 bg-card p-4 sm:p-5 shadow-xs space-y-4">
           <div className="flex items-center justify-between p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
             <div>
               <h3 className="font-display text-base font-extrabold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-2">
-                <span>🟢</span> ASSETS (Own Property, Cash &amp; Stock)
+                <span>🟢</span> ASSETS
               </h3>
               <p className="text-[11px] text-emerald-600/90 font-medium">
-                Money, inventory, and owned property or investments.
+                Owned property, investments, stock, and liquid funds.
               </p>
             </div>
             <Button
@@ -917,7 +930,7 @@ function BalanceSheetDashboard({
               onClick={() => navigate({ to: "/accounting/ledgers" })}
               className="text-xs font-bold border-emerald-500/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10"
             >
-              + Ledger Entry <ExternalLink className="ml-1 h-3 w-3" />
+              Manage Ledgers <ExternalLink className="ml-1 h-3 w-3" />
             </Button>
           </div>
 
@@ -925,132 +938,144 @@ function BalanceSheetDashboard({
             <Table>
               <TableHeader>
                 <TableRow className="border-b border-emerald-500/20 bg-emerald-50/40 dark:bg-emerald-950/20">
-                  <TableHead className="text-xs font-bold text-emerald-800 dark:text-emerald-300">Particulars Account</TableHead>
+                  <TableHead className="text-xs font-bold text-emerald-800 dark:text-emerald-300">Particulars</TableHead>
                   <TableHead className="text-xs font-bold text-center w-12">Note</TableHead>
-                  <TableHead className="text-xs font-bold text-right text-emerald-800 dark:text-emerald-300">{periodLabel}</TableHead>
-                  <TableHead className="text-xs font-bold text-center w-24">Ledger</TableHead>
+                  <TableHead className="text-xs font-bold text-right text-emerald-800 dark:text-emerald-300">31 Mar 2026 (₹)</TableHead>
+                  <TableHead className="text-xs font-bold text-right text-emerald-700/80 dark:text-emerald-400/80">31 Mar 2025 (₹)</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody className="text-xs">
-                {/* Non-Current Assets */}
+                {/* I. Non-Current Assets */}
                 <TableRow className="bg-emerald-100/30 dark:bg-emerald-900/20">
                   <TableCell colSpan={4} className="font-extrabold text-emerald-800 dark:text-emerald-300 py-2">
-                    Non-Current Assets (Fixed Assets)
+                    I. Non-Current Assets
                   </TableCell>
                 </TableRow>
 
                 <TableRow className="hover:bg-emerald-50/30">
-                  <TableCell className="pl-4 font-semibold text-foreground">
-                    Property, Plant &amp; Equipment (Land, Building, Machinery)
-                  </TableCell>
-                  <TableCell className="text-center font-mono text-[11px] text-muted-foreground">1</TableCell>
+                  <TableCell className="pl-4 font-semibold text-foreground">(a) Property, Plant &amp; Equipment</TableCell>
+                  <TableCell className="text-center font-mono text-[11px] text-emerald-600 font-bold">1</TableCell>
                   <TableCell className="text-right font-bold text-emerald-700 dark:text-emerald-400">{formatINR(realData.propertyPlantEquip)}</TableCell>
-                  <TableCell className="text-center">
-                    <Link to="/accounting/ledgers" className="text-[11px] font-bold text-emerald-600 hover:underline inline-flex items-center gap-1">
-                      View Ledger <ExternalLink className="h-3 w-3" />
-                    </Link>
-                  </TableCell>
+                  <TableCell className="text-right text-muted-foreground font-medium">{formatINR(compData?.propertyPlantEquip ?? 0)}</TableCell>
                 </TableRow>
 
                 <TableRow className="hover:bg-emerald-50/30">
-                  <TableCell className="pl-4 font-semibold text-foreground">
-                    Intangible Assets (Software, Patents, Trademarks)
-                  </TableCell>
-                  <TableCell className="text-center font-mono text-[11px] text-muted-foreground">2</TableCell>
+                  <TableCell className="pl-4 font-semibold text-foreground">(b) Capital Work in Progress</TableCell>
+                  <TableCell className="text-center font-mono text-[11px] text-emerald-600 font-bold">2</TableCell>
+                  <TableCell className="text-right font-bold text-emerald-700 dark:text-emerald-400">{formatINR(0)}</TableCell>
+                  <TableCell className="text-right text-muted-foreground font-medium">{formatINR(0)}</TableCell>
+                </TableRow>
+
+                <TableRow className="hover:bg-emerald-50/30">
+                  <TableCell className="pl-4 font-semibold text-foreground">(c) Intangible Assets</TableCell>
+                  <TableCell className="text-center font-mono text-[11px] text-emerald-600 font-bold">3</TableCell>
                   <TableCell className="text-right font-bold text-emerald-700 dark:text-emerald-400">{formatINR(realData.intangibleAssets)}</TableCell>
-                  <TableCell className="text-center">
-                    <Link to="/accounting/ledgers" className="text-[11px] font-bold text-emerald-600 hover:underline inline-flex items-center gap-1">
-                      View Ledger <ExternalLink className="h-3 w-3" />
-                    </Link>
-                  </TableCell>
+                  <TableCell className="text-right text-muted-foreground font-medium">{formatINR(compData?.intangibleAssets ?? 0)}</TableCell>
                 </TableRow>
 
                 <TableRow className="hover:bg-emerald-50/30">
-                  <TableCell className="pl-4 font-semibold text-foreground">
-                    Investments &amp; Fixed Deposits (FDs, Shares)
-                  </TableCell>
-                  <TableCell className="text-center font-mono text-[11px] text-muted-foreground">3</TableCell>
+                  <TableCell className="pl-4 font-semibold text-foreground">(d) Financial Assets</TableCell>
+                  <TableCell className="text-center font-mono text-[11px] text-muted-foreground" />
+                  <TableCell className="text-right" />
+                  <TableCell className="text-right" />
+                </TableRow>
+                <TableRow className="hover:bg-emerald-50/30">
+                  <TableCell className="pl-8 text-foreground font-medium">− Investments</TableCell>
+                  <TableCell className="text-center font-mono text-[11px] text-emerald-600 font-bold">4</TableCell>
                   <TableCell className="text-right font-bold text-emerald-700 dark:text-emerald-400">{formatINR(realData.investments)}</TableCell>
-                  <TableCell className="text-center">
-                    <Link to="/accounting/ledgers" className="text-[11px] font-bold text-emerald-600 hover:underline inline-flex items-center gap-1">
-                      View Ledger <ExternalLink className="h-3 w-3" />
-                    </Link>
-                  </TableCell>
+                  <TableCell className="text-right text-muted-foreground font-medium">{formatINR(compData?.investments ?? 0)}</TableCell>
                 </TableRow>
 
                 <TableRow className="hover:bg-emerald-50/30">
-                  <TableCell className="pl-4 font-semibold text-foreground">
-                    Long Term Loans &amp; Advances (Given Loans)
-                  </TableCell>
-                  <TableCell className="text-center font-mono text-[11px] text-muted-foreground">4</TableCell>
+                  <TableCell className="pl-4 font-semibold text-foreground">(e) Deferred Tax Assets (Net)</TableCell>
+                  <TableCell className="text-center font-mono text-[11px] text-emerald-600 font-bold">5</TableCell>
+                  <TableCell className="text-right font-bold text-emerald-700 dark:text-emerald-400">{formatINR(0)}</TableCell>
+                  <TableCell className="text-right text-muted-foreground font-medium">{formatINR(0)}</TableCell>
+                </TableRow>
+
+                <TableRow className="hover:bg-emerald-50/30">
+                  <TableCell className="pl-4 font-semibold text-foreground">(f) Long Term Loans &amp; Advances</TableCell>
+                  <TableCell className="text-center font-mono text-[11px] text-emerald-600 font-bold">6</TableCell>
                   <TableCell className="text-right font-bold text-emerald-700 dark:text-emerald-400">{formatINR(realData.longTermLoans)}</TableCell>
-                  <TableCell className="text-center">
-                    <Link to="/accounting/ledgers" className="text-[11px] font-bold text-emerald-600 hover:underline inline-flex items-center gap-1">
-                      View Ledger <ExternalLink className="h-3 w-3" />
-                    </Link>
-                  </TableCell>
+                  <TableCell className="text-right text-muted-foreground font-medium">{formatINR(compData?.longTermLoans ?? 0)}</TableCell>
                 </TableRow>
 
                 <TableRow className="font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-100/50 dark:bg-emerald-900/30">
                   <TableCell>Total Non-Current Assets</TableCell>
                   <TableCell />
-                  <TableCell className="text-right">{formatINR(realData.nonCurrentAssets)}</TableCell>
-                  <TableCell />
+                  <TableCell className="text-right font-extrabold">{formatINR(realData.nonCurrentAssets)}</TableCell>
+                  <TableCell className="text-right font-bold">{formatINR(compData?.nonCurrentAssets ?? 0)}</TableCell>
                 </TableRow>
 
-                {/* Current Assets */}
+                {/* II. Current Assets */}
                 <TableRow className="bg-emerald-100/30 dark:bg-emerald-900/20">
                   <TableCell colSpan={4} className="font-extrabold text-emerald-800 dark:text-emerald-300 py-2 mt-2">
-                    Current Assets
+                    II. Current Assets
                   </TableCell>
                 </TableRow>
 
                 <TableRow className="hover:bg-emerald-50/30">
-                  <TableCell className="pl-4 font-semibold text-foreground">Inventories (Stock Valuation)</TableCell>
-                  <TableCell className="text-center font-mono text-[11px] text-muted-foreground">5</TableCell>
+                  <TableCell className="pl-4 font-semibold text-foreground">(a) Inventories</TableCell>
+                  <TableCell className="text-center font-mono text-[11px] text-emerald-600 font-bold">7</TableCell>
                   <TableCell className="text-right font-bold text-emerald-700 dark:text-emerald-400">{formatINR(realData.inventories)}</TableCell>
-                  <TableCell className="text-center">
-                    <Link to="/products" className="text-[11px] font-bold text-emerald-600 hover:underline inline-flex items-center gap-1">
-                      View Stock <ExternalLink className="h-3 w-3" />
-                    </Link>
-                  </TableCell>
+                  <TableCell className="text-right text-muted-foreground font-medium">{formatINR(compData?.inventories ?? 0)}</TableCell>
                 </TableRow>
 
                 <TableRow className="hover:bg-emerald-50/30">
-                  <TableCell className="pl-4 font-semibold text-foreground">Trade Receivables (Customer Unpaid Invoices)</TableCell>
-                  <TableCell className="text-center font-mono text-[11px] text-muted-foreground">6</TableCell>
+                  <TableCell className="pl-4 font-semibold text-foreground">(b) Financial Assets</TableCell>
+                  <TableCell className="text-center font-mono text-[11px] text-muted-foreground" />
+                  <TableCell className="text-right" />
+                  <TableCell className="text-right" />
+                </TableRow>
+
+                <TableRow className="hover:bg-emerald-50/30">
+                  <TableCell className="pl-8 text-foreground font-medium">− Trade Receivables</TableCell>
+                  <TableCell className="text-center font-mono text-[11px] text-emerald-600 font-bold">8</TableCell>
                   <TableCell className="text-right font-bold text-emerald-700 dark:text-emerald-400">{formatINR(realData.tradeReceivables)}</TableCell>
-                  <TableCell className="text-center">
-                    <Link to="/parties" className="text-[11px] font-bold text-emerald-600 hover:underline inline-flex items-center gap-1">
-                      View Parties <ExternalLink className="h-3 w-3" />
-                    </Link>
-                  </TableCell>
+                  <TableCell className="text-right text-muted-foreground font-medium">{formatINR(compData?.tradeReceivables ?? 0)}</TableCell>
                 </TableRow>
 
                 <TableRow className="hover:bg-emerald-50/30">
-                  <TableCell className="pl-4 font-semibold text-foreground">Cash &amp; Bank Balances (Cash in Hand &amp; Bank)</TableCell>
-                  <TableCell className="text-center font-mono text-[11px] text-muted-foreground">7</TableCell>
+                  <TableCell className="pl-8 text-foreground font-medium">− Cash &amp; Cash Equivalents</TableCell>
+                  <TableCell className="text-center font-mono text-[11px] text-emerald-600 font-bold">9</TableCell>
                   <TableCell className="text-right font-bold text-emerald-700 dark:text-emerald-400">{formatINR(realData.cashBankBalance)}</TableCell>
-                  <TableCell className="text-center">
-                    <Link to="/payments" className="text-[11px] font-bold text-emerald-600 hover:underline inline-flex items-center gap-1">
-                      View Payments <ExternalLink className="h-3 w-3" />
-                    </Link>
-                  </TableCell>
+                  <TableCell className="text-right text-muted-foreground font-medium">{formatINR(compData?.cashBankBalance ?? 0)}</TableCell>
+                </TableRow>
+
+                <TableRow className="hover:bg-emerald-50/30">
+                  <TableCell className="pl-8 text-foreground font-medium">− Bank Balances other than above</TableCell>
+                  <TableCell className="text-center font-mono text-[11px] text-emerald-600 font-bold">9</TableCell>
+                  <TableCell className="text-right font-bold text-emerald-700 dark:text-emerald-400">{formatINR(0)}</TableCell>
+                  <TableCell className="text-right text-muted-foreground font-medium">{formatINR(0)}</TableCell>
+                </TableRow>
+
+                <TableRow className="hover:bg-emerald-50/30">
+                  <TableCell className="pl-8 text-foreground font-medium">− Other Financial Assets</TableCell>
+                  <TableCell className="text-center font-mono text-[11px] text-emerald-600 font-bold">10</TableCell>
+                  <TableCell className="text-right font-bold text-emerald-700 dark:text-emerald-400">{formatINR(0)}</TableCell>
+                  <TableCell className="text-right text-muted-foreground font-medium">{formatINR(0)}</TableCell>
+                </TableRow>
+
+                <TableRow className="hover:bg-emerald-50/30">
+                  <TableCell className="pl-4 font-semibold text-foreground">(c) Other Current Assets</TableCell>
+                  <TableCell className="text-center font-mono text-[11px] text-emerald-600 font-bold">11</TableCell>
+                  <TableCell className="text-right font-bold text-emerald-700 dark:text-emerald-400">{formatINR(0)}</TableCell>
+                  <TableCell className="text-right text-muted-foreground font-medium">{formatINR(0)}</TableCell>
                 </TableRow>
 
                 <TableRow className="font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-100/50 dark:bg-emerald-900/30">
                   <TableCell>Total Current Assets</TableCell>
                   <TableCell />
-                  <TableCell className="text-right">{formatINR(realData.currentAssets)}</TableCell>
-                  <TableCell />
+                  <TableCell className="text-right font-extrabold">{formatINR(realData.currentAssets)}</TableCell>
+                  <TableCell className="text-right font-bold">{formatINR(compData?.currentAssets ?? 0)}</TableCell>
                 </TableRow>
 
                 {/* Grand Total Assets */}
                 <TableRow className="font-extrabold text-sm text-emerald-800 dark:text-emerald-300 bg-emerald-200/60 dark:bg-emerald-900/60 border-t-2 border-emerald-500">
-                  <TableCell>🟢 TOTAL ASSETS</TableCell>
+                  <TableCell>TOTAL ASSETS</TableCell>
                   <TableCell />
                   <TableCell className="text-right font-black">{formatINR(realData.totalAssets)}</TableCell>
-                  <TableCell />
+                  <TableCell className="text-right font-bold">{formatINR(compData?.totalAssets ?? 0)}</TableCell>
                 </TableRow>
               </TableBody>
             </Table>
@@ -1062,7 +1087,7 @@ function BalanceSheetDashboard({
           <div className="flex items-center justify-between p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20">
             <div>
               <h3 className="font-display text-base font-extrabold text-rose-700 dark:text-rose-400 uppercase tracking-wider flex items-center gap-2">
-                <span>🔴</span> EQUITY &amp; LIABILITIES (Payables &amp; Capital)
+                <span>🔴</span> EQUITY AND LIABILITIES
               </h3>
               <p className="text-[11px] text-rose-600/90 font-medium">
                 Bank loans, supplier unpaid bills, and invested owner capital.
@@ -1074,7 +1099,7 @@ function BalanceSheetDashboard({
               onClick={() => navigate({ to: "/accounting/ledgers" })}
               className="text-xs font-bold border-rose-500/30 text-rose-700 dark:text-rose-400 hover:bg-rose-500/10"
             >
-              + Ledger Entry <ExternalLink className="ml-1 h-3 w-3" />
+              Manage Ledgers <ExternalLink className="ml-1 h-3 w-3" />
             </Button>
           </div>
 
@@ -1082,122 +1107,128 @@ function BalanceSheetDashboard({
             <Table>
               <TableHeader>
                 <TableRow className="border-b border-rose-500/20 bg-rose-50/40 dark:bg-rose-950/20">
-                  <TableHead className="text-xs font-bold text-rose-800 dark:text-rose-300">Particulars Account</TableHead>
+                  <TableHead className="text-xs font-bold text-rose-800 dark:text-rose-300">Particulars</TableHead>
                   <TableHead className="text-xs font-bold text-center w-12">Note</TableHead>
-                  <TableHead className="text-xs font-bold text-right text-rose-800 dark:text-rose-300">{periodLabel}</TableHead>
-                  <TableHead className="text-xs font-bold text-center w-24">Ledger</TableHead>
+                  <TableHead className="text-xs font-bold text-right text-rose-800 dark:text-rose-300">31 Mar 2026 (₹)</TableHead>
+                  <TableHead className="text-xs font-bold text-right text-rose-700/80 dark:text-rose-400/80">31 Mar 2025 (₹)</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody className="text-xs">
                 {/* Equity */}
                 <TableRow className="bg-rose-100/30 dark:bg-rose-900/20">
                   <TableCell colSpan={4} className="font-extrabold text-rose-800 dark:text-rose-300 py-2">
-                    Equity (Invested Owner Capital)
+                    I. Equity
                   </TableCell>
                 </TableRow>
 
                 <TableRow className="hover:bg-rose-50/30">
-                  <TableCell className="pl-4 font-semibold text-foreground">
-                    Share Capital / Owner's Capital (Owner's Investment)
-                  </TableCell>
-                  <TableCell className="text-center font-mono text-[11px] text-muted-foreground">10</TableCell>
+                  <TableCell className="pl-4 font-semibold text-foreground">(a) Equity Share Capital / Owner's Capital</TableCell>
+                  <TableCell className="text-center font-mono text-[11px] text-rose-600 font-bold">12</TableCell>
                   <TableCell className="text-right font-bold text-rose-700 dark:text-rose-400">{formatINR(realData.shareCapital)}</TableCell>
-                  <TableCell className="text-center">
-                    <Link to="/accounting/ledgers" className="text-[11px] font-bold text-rose-600 hover:underline inline-flex items-center gap-1">
-                      View Ledger <ExternalLink className="h-3 w-3" />
-                    </Link>
-                  </TableCell>
+                  <TableCell className="text-right text-muted-foreground font-medium">{formatINR(compData?.shareCapital ?? 0)}</TableCell>
                 </TableRow>
 
                 <TableRow className="hover:bg-rose-50/30">
-                  <TableCell className="pl-4 font-semibold text-foreground">
-                    Reserves &amp; Surplus (Accumulated Business Profit)
-                  </TableCell>
-                  <TableCell className="text-center font-mono text-[11px] text-muted-foreground">11</TableCell>
+                  <TableCell className="pl-4 font-semibold text-foreground">(b) Other Equity (Reserves &amp; Surplus)</TableCell>
+                  <TableCell className="text-center font-mono text-[11px] text-rose-600 font-bold">13</TableCell>
                   <TableCell className="text-right font-bold text-rose-700 dark:text-rose-400">{formatINR(realData.reservesSurplus)}</TableCell>
-                  <TableCell className="text-center">
-                    <Link to="/reports" search={{ tab: "pnl" }} className="text-[11px] font-bold text-rose-600 hover:underline inline-flex items-center gap-1">
-                      P&amp;L View <ExternalLink className="h-3 w-3" />
-                    </Link>
-                  </TableCell>
+                  <TableCell className="text-right text-muted-foreground font-medium">{formatINR(compData?.reservesSurplus ?? 0)}</TableCell>
                 </TableRow>
 
                 <TableRow className="font-bold text-rose-700 dark:text-rose-400 bg-rose-100/50 dark:bg-rose-900/30">
                   <TableCell>Total Equity</TableCell>
                   <TableCell />
-                  <TableCell className="text-right">{formatINR(realData.totalEquity)}</TableCell>
-                  <TableCell />
+                  <TableCell className="text-right font-extrabold">{formatINR(realData.totalEquity)}</TableCell>
+                  <TableCell className="text-right font-bold">{formatINR(compData?.totalEquity ?? 0)}</TableCell>
                 </TableRow>
 
                 {/* Non-Current Liabilities */}
                 <TableRow className="bg-rose-100/30 dark:bg-rose-900/20">
                   <TableCell colSpan={4} className="font-extrabold text-rose-800 dark:text-rose-300 py-2 mt-2">
-                    Non-Current Liabilities (Long Term Loans)
+                    II. Non-Current Liabilities
                   </TableCell>
                 </TableRow>
 
                 <TableRow className="hover:bg-rose-50/30">
-                  <TableCell className="pl-4 font-semibold text-foreground">
-                    Long Term Borrowings (Bank Loans &amp; Term Debt)
-                  </TableCell>
-                  <TableCell className="text-center font-mono text-[11px] text-muted-foreground">12</TableCell>
+                  <TableCell className="pl-4 font-semibold text-foreground">(a) Financial Liabilities</TableCell>
+                  <TableCell className="text-center font-mono text-[11px] text-muted-foreground" />
+                  <TableCell className="text-right" />
+                  <TableCell className="text-right" />
+                </TableRow>
+                <TableRow className="hover:bg-rose-50/30">
+                  <TableCell className="pl-8 text-foreground font-medium">− Long Term Borrowings</TableCell>
+                  <TableCell className="text-center font-mono text-[11px] text-rose-600 font-bold">14</TableCell>
                   <TableCell className="text-right font-bold text-rose-700 dark:text-rose-400">{formatINR(realData.nonCurrentLiabilities)}</TableCell>
-                  <TableCell className="text-center">
-                    <Link to="/accounting/ledgers" className="text-[11px] font-bold text-rose-600 hover:underline inline-flex items-center gap-1">
-                      View Ledger <ExternalLink className="h-3 w-3" />
-                    </Link>
-                  </TableCell>
+                  <TableCell className="text-right text-muted-foreground font-medium">{formatINR(compData?.nonCurrentLiabilities ?? 0)}</TableCell>
+                </TableRow>
+
+                <TableRow className="hover:bg-rose-50/30">
+                  <TableCell className="pl-4 font-semibold text-foreground">(b) Provisions</TableCell>
+                  <TableCell className="text-center font-mono text-[11px] text-rose-600 font-bold">15</TableCell>
+                  <TableCell className="text-right font-bold text-rose-700 dark:text-rose-400">{formatINR(0)}</TableCell>
+                  <TableCell className="text-right text-muted-foreground font-medium">{formatINR(0)}</TableCell>
+                </TableRow>
+
+                <TableRow className="hover:bg-rose-50/30">
+                  <TableCell className="pl-4 font-semibold text-foreground">(c) Deferred Tax Liabilities (Net)</TableCell>
+                  <TableCell className="text-center font-mono text-[11px] text-rose-600 font-bold">16</TableCell>
+                  <TableCell className="text-right font-bold text-rose-700 dark:text-rose-400">{formatINR(0)}</TableCell>
+                  <TableCell className="text-right text-muted-foreground font-medium">{formatINR(0)}</TableCell>
                 </TableRow>
 
                 <TableRow className="font-bold text-rose-700 dark:text-rose-400 bg-rose-100/50 dark:bg-rose-900/30">
                   <TableCell>Total Non-Current Liabilities</TableCell>
                   <TableCell />
-                  <TableCell className="text-right">{formatINR(realData.nonCurrentLiabilities)}</TableCell>
-                  <TableCell />
+                  <TableCell className="text-right font-extrabold">{formatINR(realData.nonCurrentLiabilities)}</TableCell>
+                  <TableCell className="text-right font-bold">{formatINR(compData?.nonCurrentLiabilities ?? 0)}</TableCell>
                 </TableRow>
 
-                {/* Current Liabilities */}
+                {/* III. Current Liabilities */}
                 <TableRow className="bg-rose-100/30 dark:bg-rose-900/20">
                   <TableCell colSpan={4} className="font-extrabold text-rose-800 dark:text-rose-300 py-2 mt-2">
-                    Current Liabilities
+                    III. Current Liabilities
                   </TableCell>
                 </TableRow>
 
                 <TableRow className="hover:bg-rose-50/30">
-                  <TableCell className="pl-4 font-semibold text-foreground">Trade Payables (Supplier Unpaid Bills)</TableCell>
-                  <TableCell className="text-center font-mono text-[11px] text-muted-foreground">13</TableCell>
+                  <TableCell className="pl-4 font-semibold text-foreground">(a) Financial Liabilities</TableCell>
+                  <TableCell className="text-center font-mono text-[11px] text-muted-foreground" />
+                  <TableCell className="text-right" />
+                  <TableCell className="text-right" />
+                </TableRow>
+                <TableRow className="hover:bg-rose-50/30">
+                  <TableCell className="pl-8 text-foreground font-medium">− Trade Payables</TableCell>
+                  <TableCell className="text-center font-mono text-[11px] text-rose-600 font-bold">17</TableCell>
                   <TableCell className="text-right font-bold text-rose-700 dark:text-rose-400">{formatINR(realData.tradePayables)}</TableCell>
-                  <TableCell className="text-center">
-                    <Link to="/purchases" className="text-[11px] font-bold text-rose-600 hover:underline inline-flex items-center gap-1">
-                      View Bills <ExternalLink className="h-3 w-3" />
-                    </Link>
-                  </TableCell>
+                  <TableCell className="text-right text-muted-foreground font-medium">{formatINR(compData?.tradePayables ?? 0)}</TableCell>
+                </TableRow>
+                <TableRow className="hover:bg-rose-50/30">
+                  <TableCell className="pl-8 text-foreground font-medium">− Other Current Liabilities</TableCell>
+                  <TableCell className="text-center font-mono text-[11px] text-rose-600 font-bold">18</TableCell>
+                  <TableCell className="text-right font-bold text-rose-700 dark:text-rose-400">{formatINR(0)}</TableCell>
+                  <TableCell className="text-right text-muted-foreground font-medium">{formatINR(0)}</TableCell>
                 </TableRow>
 
                 <TableRow className="hover:bg-rose-50/30">
-                  <TableCell className="pl-4 font-semibold text-foreground">Output GST Payable (Unsettled Tax Liability)</TableCell>
-                  <TableCell className="text-center font-mono text-[11px] text-muted-foreground">14</TableCell>
+                  <TableCell className="pl-4 font-semibold text-foreground">(b) Short Term Provisions &amp; Output GST</TableCell>
+                  <TableCell className="text-center font-mono text-[11px] text-rose-600 font-bold">19</TableCell>
                   <TableCell className="text-right font-bold text-rose-700 dark:text-rose-400">{formatINR(realData.netGstPayable)}</TableCell>
-                  <TableCell className="text-center">
-                    <Link to="/reports" search={{ tab: "pnl" }} className="text-[11px] font-bold text-rose-600 hover:underline inline-flex items-center gap-1">
-                      GST Report <ExternalLink className="h-3 w-3" />
-                    </Link>
-                  </TableCell>
+                  <TableCell className="text-right text-muted-foreground font-medium">{formatINR(0)}</TableCell>
                 </TableRow>
 
                 <TableRow className="font-bold text-rose-700 dark:text-rose-400 bg-rose-100/50 dark:bg-rose-900/30">
                   <TableCell>Total Current Liabilities</TableCell>
                   <TableCell />
-                  <TableCell className="text-right">{formatINR(realData.currentLiabilities)}</TableCell>
-                  <TableCell />
+                  <TableCell className="text-right font-extrabold">{formatINR(realData.currentLiabilities)}</TableCell>
+                  <TableCell className="text-right font-bold">{formatINR(compData?.currentLiabilities ?? 0)}</TableCell>
                 </TableRow>
 
                 {/* Grand Total Equity & Liabilities */}
                 <TableRow className="font-extrabold text-sm text-rose-800 dark:text-rose-300 bg-rose-200/60 dark:bg-rose-900/60 border-t-2 border-rose-500">
-                  <TableCell>🔴 TOTAL EQUITY &amp; LIABILITIES</TableCell>
+                  <TableCell>TOTAL EQUITY AND LIABILITIES</TableCell>
                   <TableCell />
                   <TableCell className="text-right font-black">{formatINR(realData.totalLiabilitiesAndEquity)}</TableCell>
-                  <TableCell />
+                  <TableCell className="text-right font-bold">{formatINR(compData?.totalLiabilitiesAndEquity ?? 0)}</TableCell>
                 </TableRow>
               </TableBody>
             </Table>
