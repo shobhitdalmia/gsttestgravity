@@ -709,7 +709,7 @@ function BalanceSheetDashboard({
             <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400">{compLabel}</span>
           </div>
           <div className="mt-3">
-            <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">Total Assets (संपत्ति)</p>
+            <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">Total Assets</p>
             <h3 className="font-display text-2xl font-extrabold text-emerald-700 dark:text-emerald-300 mt-0.5">{formatINR(realData.totalAssets)}</h3>
           </div>
           <div className="mt-2 flex items-center gap-1 text-xs font-medium text-emerald-600">
@@ -727,7 +727,7 @@ function BalanceSheetDashboard({
             <span className="text-[10px] font-semibold text-rose-700 dark:text-rose-400">{compLabel}</span>
           </div>
           <div className="mt-3">
-            <p className="text-xs font-bold text-rose-700 dark:text-rose-400 uppercase tracking-wider">Total Liabilities (देनदारी)</p>
+            <p className="text-xs font-bold text-rose-700 dark:text-rose-400 uppercase tracking-wider">Total Liabilities</p>
             <h3 className="font-display text-2xl font-extrabold text-rose-700 dark:text-rose-300 mt-0.5">{formatINR(realData.currentLiabilities + realData.nonCurrentLiabilities)}</h3>
           </div>
           <div className="mt-2 flex items-center gap-1 text-xs font-medium text-rose-600">
@@ -745,7 +745,7 @@ function BalanceSheetDashboard({
             <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400">{compLabel}</span>
           </div>
           <div className="mt-3">
-            <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">Net Worth (खुद का पैसा)</p>
+            <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">Net Worth</p>
             <h3 className="font-display text-2xl font-extrabold text-emerald-700 dark:text-emerald-300 mt-0.5">{formatINR(realData.totalEquity)}</h3>
           </div>
           <div className="mt-2 flex items-center gap-1 text-xs font-medium text-emerald-600">
@@ -763,7 +763,7 @@ function BalanceSheetDashboard({
             <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400">{compLabel}</span>
           </div>
           <div className="mt-3">
-            <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">Cash &amp; Bank (रोकड़)</p>
+            <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">Cash &amp; Bank</p>
             <h3 className="font-display text-2xl font-extrabold text-emerald-700 dark:text-emerald-300 mt-0.5">{formatINR(realData.cashBankBalance)}</h3>
           </div>
           <div className="mt-2 flex items-center gap-1 text-xs font-medium text-emerald-600">
@@ -802,8 +802,8 @@ function BalanceSheetDashboard({
                 <XAxis dataKey="year" stroke="#888888" fontSize={10} tickLine={false} axisLine={false} />
                 <YAxis stroke="#888888" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `${v} L`} />
                 <Tooltip formatter={(value: any) => [`₹${value} Lakh`, ""]} />
-                <Line type="monotone" dataKey="assets" stroke="#10b981" strokeWidth={2.5} dot={{ r: 3 }} name="🟢 Assets (संपत्ति)" />
-                <Line type="monotone" dataKey="liabilities" stroke="#f43f5e" strokeWidth={2.5} dot={{ r: 3 }} name="🔴 Liabilities (देनदारी)" />
+                <Line type="monotone" dataKey="assets" stroke="#10b981" strokeWidth={2.5} dot={{ r: 3 }} name="🟢 Assets" />
+                <Line type="monotone" dataKey="liabilities" stroke="#f43f5e" strokeWidth={2.5} dot={{ r: 3 }} name="🔴 Liabilities" />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -905,10 +905,10 @@ function BalanceSheetDashboard({
           <div className="flex items-center justify-between p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
             <div>
               <h3 className="font-display text-base font-extrabold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-2">
-                <span>🟢</span> ASSETS (संपत्ति - आपकी संपत्ति)
+                <span>🟢</span> ASSETS (Own Property, Cash &amp; Stock)
               </h3>
               <p className="text-[11px] text-emerald-600/90 font-medium">
-                यह आपका पैसा, स्टॉक, और खरीदी गई प्रॉपर्टी है।
+                Money, inventory, and owned property or investments.
               </p>
             </div>
             <Button
@@ -925,68 +925,68 @@ function BalanceSheetDashboard({
             <Table>
               <TableHeader>
                 <TableRow className="border-b border-emerald-500/20 bg-emerald-50/40 dark:bg-emerald-950/20">
-                  <TableHead className="text-xs font-bold text-emerald-800 dark:text-emerald-300">Particulars (खाता)</TableHead>
+                  <TableHead className="text-xs font-bold text-emerald-800 dark:text-emerald-300">Particulars Account</TableHead>
                   <TableHead className="text-xs font-bold text-center w-12">Note</TableHead>
                   <TableHead className="text-xs font-bold text-right text-emerald-800 dark:text-emerald-300">{periodLabel}</TableHead>
-                  <TableHead className="text-xs font-bold text-center w-24">Action</TableHead>
+                  <TableHead className="text-xs font-bold text-center w-24">Ledger</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody className="text-xs">
                 {/* Non-Current Assets */}
                 <TableRow className="bg-emerald-100/30 dark:bg-emerald-900/20">
                   <TableCell colSpan={4} className="font-extrabold text-emerald-800 dark:text-emerald-300 py-2">
-                    Non-Current Assets (स्थाई संपत्ति)
+                    Non-Current Assets (Fixed Assets)
                   </TableCell>
                 </TableRow>
 
                 <TableRow className="hover:bg-emerald-50/30">
                   <TableCell className="pl-4 font-semibold text-foreground">
-                    Property, Plant &amp; Equipment (जमीन, दुकान, मशीनरी)
+                    Property, Plant &amp; Equipment (Land, Building, Machinery)
                   </TableCell>
                   <TableCell className="text-center font-mono text-[11px] text-muted-foreground">1</TableCell>
                   <TableCell className="text-right font-bold text-emerald-700 dark:text-emerald-400">{formatINR(realData.propertyPlantEquip)}</TableCell>
                   <TableCell className="text-center">
                     <Link to="/accounting/ledgers" className="text-[11px] font-bold text-emerald-600 hover:underline inline-flex items-center gap-1">
-                      Post <ExternalLink className="h-3 w-3" />
+                      View Ledger <ExternalLink className="h-3 w-3" />
                     </Link>
                   </TableCell>
                 </TableRow>
 
                 <TableRow className="hover:bg-emerald-50/30">
                   <TableCell className="pl-4 font-semibold text-foreground">
-                    Intangible Assets (सॉफ्टवेयर, पेटेंट)
+                    Intangible Assets (Software, Patents, Trademarks)
                   </TableCell>
                   <TableCell className="text-center font-mono text-[11px] text-muted-foreground">2</TableCell>
                   <TableCell className="text-right font-bold text-emerald-700 dark:text-emerald-400">{formatINR(realData.intangibleAssets)}</TableCell>
                   <TableCell className="text-center">
                     <Link to="/accounting/ledgers" className="text-[11px] font-bold text-emerald-600 hover:underline inline-flex items-center gap-1">
-                      Post <ExternalLink className="h-3 w-3" />
+                      View Ledger <ExternalLink className="h-3 w-3" />
                     </Link>
                   </TableCell>
                 </TableRow>
 
                 <TableRow className="hover:bg-emerald-50/30">
                   <TableCell className="pl-4 font-semibold text-foreground">
-                    Investments &amp; FDs (निवेश &amp; एफडी)
+                    Investments &amp; Fixed Deposits (FDs, Shares)
                   </TableCell>
                   <TableCell className="text-center font-mono text-[11px] text-muted-foreground">3</TableCell>
                   <TableCell className="text-right font-bold text-emerald-700 dark:text-emerald-400">{formatINR(realData.investments)}</TableCell>
                   <TableCell className="text-center">
                     <Link to="/accounting/ledgers" className="text-[11px] font-bold text-emerald-600 hover:underline inline-flex items-center gap-1">
-                      Post <ExternalLink className="h-3 w-3" />
+                      View Ledger <ExternalLink className="h-3 w-3" />
                     </Link>
                   </TableCell>
                 </TableRow>
 
                 <TableRow className="hover:bg-emerald-50/30">
                   <TableCell className="pl-4 font-semibold text-foreground">
-                    Long Term Loans &amp; Advances (दिया गया लोन)
+                    Long Term Loans &amp; Advances (Given Loans)
                   </TableCell>
                   <TableCell className="text-center font-mono text-[11px] text-muted-foreground">4</TableCell>
                   <TableCell className="text-right font-bold text-emerald-700 dark:text-emerald-400">{formatINR(realData.longTermLoans)}</TableCell>
                   <TableCell className="text-center">
                     <Link to="/accounting/ledgers" className="text-[11px] font-bold text-emerald-600 hover:underline inline-flex items-center gap-1">
-                      Post <ExternalLink className="h-3 w-3" />
+                      View Ledger <ExternalLink className="h-3 w-3" />
                     </Link>
                   </TableCell>
                 </TableRow>
@@ -1001,39 +1001,39 @@ function BalanceSheetDashboard({
                 {/* Current Assets */}
                 <TableRow className="bg-emerald-100/30 dark:bg-emerald-900/20">
                   <TableCell colSpan={4} className="font-extrabold text-emerald-800 dark:text-emerald-300 py-2 mt-2">
-                    Current Assets (चालू संपत्ति)
+                    Current Assets
                   </TableCell>
                 </TableRow>
 
                 <TableRow className="hover:bg-emerald-50/30">
-                  <TableCell className="pl-4 font-semibold text-foreground">Inventories (सामान/स्टॉक की वैल्यू)</TableCell>
+                  <TableCell className="pl-4 font-semibold text-foreground">Inventories (Stock Valuation)</TableCell>
                   <TableCell className="text-center font-mono text-[11px] text-muted-foreground">5</TableCell>
                   <TableCell className="text-right font-bold text-emerald-700 dark:text-emerald-400">{formatINR(realData.inventories)}</TableCell>
                   <TableCell className="text-center">
                     <Link to="/products" className="text-[11px] font-bold text-emerald-600 hover:underline inline-flex items-center gap-1">
-                      Stock <ExternalLink className="h-3 w-3" />
+                      View Stock <ExternalLink className="h-3 w-3" />
                     </Link>
                   </TableCell>
                 </TableRow>
 
                 <TableRow className="hover:bg-emerald-50/30">
-                  <TableCell className="pl-4 font-semibold text-foreground">Trade Receivables (ग्राहकों की उधारी)</TableCell>
+                  <TableCell className="pl-4 font-semibold text-foreground">Trade Receivables (Customer Unpaid Invoices)</TableCell>
                   <TableCell className="text-center font-mono text-[11px] text-muted-foreground">6</TableCell>
                   <TableCell className="text-right font-bold text-emerald-700 dark:text-emerald-400">{formatINR(realData.tradeReceivables)}</TableCell>
                   <TableCell className="text-center">
                     <Link to="/parties" className="text-[11px] font-bold text-emerald-600 hover:underline inline-flex items-center gap-1">
-                      Parties <ExternalLink className="h-3 w-3" />
+                      View Parties <ExternalLink className="h-3 w-3" />
                     </Link>
                   </TableCell>
                 </TableRow>
 
                 <TableRow className="hover:bg-emerald-50/30">
-                  <TableCell className="pl-4 font-semibold text-foreground">Cash &amp; Bank Balances (गल्ला &amp; बैंक रोकड़)</TableCell>
+                  <TableCell className="pl-4 font-semibold text-foreground">Cash &amp; Bank Balances (Cash in Hand &amp; Bank)</TableCell>
                   <TableCell className="text-center font-mono text-[11px] text-muted-foreground">7</TableCell>
                   <TableCell className="text-right font-bold text-emerald-700 dark:text-emerald-400">{formatINR(realData.cashBankBalance)}</TableCell>
                   <TableCell className="text-center">
                     <Link to="/payments" className="text-[11px] font-bold text-emerald-600 hover:underline inline-flex items-center gap-1">
-                      Payments <ExternalLink className="h-3 w-3" />
+                      View Payments <ExternalLink className="h-3 w-3" />
                     </Link>
                   </TableCell>
                 </TableRow>
@@ -1047,7 +1047,7 @@ function BalanceSheetDashboard({
 
                 {/* Grand Total Assets */}
                 <TableRow className="font-extrabold text-sm text-emerald-800 dark:text-emerald-300 bg-emerald-200/60 dark:bg-emerald-900/60 border-t-2 border-emerald-500">
-                  <TableCell>🟢 TOTAL ASSETS (कुल संपत्ति)</TableCell>
+                  <TableCell>🟢 TOTAL ASSETS</TableCell>
                   <TableCell />
                   <TableCell className="text-right font-black">{formatINR(realData.totalAssets)}</TableCell>
                   <TableCell />
@@ -1062,10 +1062,10 @@ function BalanceSheetDashboard({
           <div className="flex items-center justify-between p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20">
             <div>
               <h3 className="font-display text-base font-extrabold text-rose-700 dark:text-rose-400 uppercase tracking-wider flex items-center gap-2">
-                <span>🔴</span> EQUITY &amp; LIABILITIES (देनदारी - उधारी &amp; लोन)
+                <span>🔴</span> EQUITY &amp; LIABILITIES (Payables &amp; Capital)
               </h3>
               <p className="text-[11px] text-rose-600/90 font-medium">
-                यह आपका बैंक लोन, सप्लायर का बकाया, और बिज़नेस में लगा कैपिटल है।
+                Bank loans, supplier unpaid bills, and invested owner capital.
               </p>
             </div>
             <Button
@@ -1082,42 +1082,42 @@ function BalanceSheetDashboard({
             <Table>
               <TableHeader>
                 <TableRow className="border-b border-rose-500/20 bg-rose-50/40 dark:bg-rose-950/20">
-                  <TableHead className="text-xs font-bold text-rose-800 dark:text-rose-300">Particulars (खाता)</TableHead>
+                  <TableHead className="text-xs font-bold text-rose-800 dark:text-rose-300">Particulars Account</TableHead>
                   <TableHead className="text-xs font-bold text-center w-12">Note</TableHead>
                   <TableHead className="text-xs font-bold text-right text-rose-800 dark:text-rose-300">{periodLabel}</TableHead>
-                  <TableHead className="text-xs font-bold text-center w-24">Action</TableHead>
+                  <TableHead className="text-xs font-bold text-center w-24">Ledger</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody className="text-xs">
                 {/* Equity */}
                 <TableRow className="bg-rose-100/30 dark:bg-rose-900/20">
                   <TableCell colSpan={4} className="font-extrabold text-rose-800 dark:text-rose-300 py-2">
-                    Equity (पूंजी &amp; मालिक का पैसा)
+                    Equity (Invested Owner Capital)
                   </TableCell>
                 </TableRow>
 
                 <TableRow className="hover:bg-rose-50/30">
                   <TableCell className="pl-4 font-semibold text-foreground">
-                    Share Capital / Owner's Capital (मालिक द्वारा लगाई पूंजी)
+                    Share Capital / Owner's Capital (Owner's Investment)
                   </TableCell>
                   <TableCell className="text-center font-mono text-[11px] text-muted-foreground">10</TableCell>
                   <TableCell className="text-right font-bold text-rose-700 dark:text-rose-400">{formatINR(realData.shareCapital)}</TableCell>
                   <TableCell className="text-center">
                     <Link to="/accounting/ledgers" className="text-[11px] font-bold text-rose-600 hover:underline inline-flex items-center gap-1">
-                      Post <ExternalLink className="h-3 w-3" />
+                      View Ledger <ExternalLink className="h-3 w-3" />
                     </Link>
                   </TableCell>
                 </TableRow>
 
                 <TableRow className="hover:bg-rose-50/30">
                   <TableCell className="pl-4 font-semibold text-foreground">
-                    Reserves &amp; Surplus (बिज़नेस का मुनाफा/मुनाफा बैलेंस)
+                    Reserves &amp; Surplus (Accumulated Business Profit)
                   </TableCell>
                   <TableCell className="text-center font-mono text-[11px] text-muted-foreground">11</TableCell>
                   <TableCell className="text-right font-bold text-rose-700 dark:text-rose-400">{formatINR(realData.reservesSurplus)}</TableCell>
                   <TableCell className="text-center">
                     <Link to="/reports" search={{ tab: "pnl" }} className="text-[11px] font-bold text-rose-600 hover:underline inline-flex items-center gap-1">
-                      P&amp;L <ExternalLink className="h-3 w-3" />
+                      P&amp;L View <ExternalLink className="h-3 w-3" />
                     </Link>
                   </TableCell>
                 </TableRow>
@@ -1132,19 +1132,19 @@ function BalanceSheetDashboard({
                 {/* Non-Current Liabilities */}
                 <TableRow className="bg-rose-100/30 dark:bg-rose-900/20">
                   <TableCell colSpan={4} className="font-extrabold text-rose-800 dark:text-rose-300 py-2 mt-2">
-                    Non-Current Liabilities (लॉन्ग-टर्म लोन &amp; कर्ज)
+                    Non-Current Liabilities (Long Term Loans)
                   </TableCell>
                 </TableRow>
 
                 <TableRow className="hover:bg-rose-50/30">
                   <TableCell className="pl-4 font-semibold text-foreground">
-                    Long Term Borrowings (बैंक लोन &amp; फाइनेंस)
+                    Long Term Borrowings (Bank Loans &amp; Term Debt)
                   </TableCell>
                   <TableCell className="text-center font-mono text-[11px] text-muted-foreground">12</TableCell>
                   <TableCell className="text-right font-bold text-rose-700 dark:text-rose-400">{formatINR(realData.nonCurrentLiabilities)}</TableCell>
                   <TableCell className="text-center">
                     <Link to="/accounting/ledgers" className="text-[11px] font-bold text-rose-600 hover:underline inline-flex items-center gap-1">
-                      Post <ExternalLink className="h-3 w-3" />
+                      View Ledger <ExternalLink className="h-3 w-3" />
                     </Link>
                   </TableCell>
                 </TableRow>
@@ -1159,28 +1159,28 @@ function BalanceSheetDashboard({
                 {/* Current Liabilities */}
                 <TableRow className="bg-rose-100/30 dark:bg-rose-900/20">
                   <TableCell colSpan={4} className="font-extrabold text-rose-800 dark:text-rose-300 py-2 mt-2">
-                    Current Liabilities (शॉर्ट-टर्म देनदारी)
+                    Current Liabilities
                   </TableCell>
                 </TableRow>
 
                 <TableRow className="hover:bg-rose-50/30">
-                  <TableCell className="pl-4 font-semibold text-foreground">Trade Payables (सप्लायरों का बकाया बिल)</TableCell>
+                  <TableCell className="pl-4 font-semibold text-foreground">Trade Payables (Supplier Unpaid Bills)</TableCell>
                   <TableCell className="text-center font-mono text-[11px] text-muted-foreground">13</TableCell>
                   <TableCell className="text-right font-bold text-rose-700 dark:text-rose-400">{formatINR(realData.tradePayables)}</TableCell>
                   <TableCell className="text-center">
                     <Link to="/purchases" className="text-[11px] font-bold text-rose-600 hover:underline inline-flex items-center gap-1">
-                      Bills <ExternalLink className="h-3 w-3" />
+                      View Bills <ExternalLink className="h-3 w-3" />
                     </Link>
                   </TableCell>
                 </TableRow>
 
                 <TableRow className="hover:bg-rose-50/30">
-                  <TableCell className="pl-4 font-semibold text-foreground">Output GST Payable (सरकार को टैक्स देनदारी)</TableCell>
+                  <TableCell className="pl-4 font-semibold text-foreground">Output GST Payable (Unsettled Tax Liability)</TableCell>
                   <TableCell className="text-center font-mono text-[11px] text-muted-foreground">14</TableCell>
                   <TableCell className="text-right font-bold text-rose-700 dark:text-rose-400">{formatINR(realData.netGstPayable)}</TableCell>
                   <TableCell className="text-center">
                     <Link to="/reports" search={{ tab: "pnl" }} className="text-[11px] font-bold text-rose-600 hover:underline inline-flex items-center gap-1">
-                      GST <ExternalLink className="h-3 w-3" />
+                      GST Report <ExternalLink className="h-3 w-3" />
                     </Link>
                   </TableCell>
                 </TableRow>
@@ -1194,7 +1194,7 @@ function BalanceSheetDashboard({
 
                 {/* Grand Total Equity & Liabilities */}
                 <TableRow className="font-extrabold text-sm text-rose-800 dark:text-rose-300 bg-rose-200/60 dark:bg-rose-900/60 border-t-2 border-rose-500">
-                  <TableCell>🔴 TOTAL EQUITY &amp; LIABILITIES (कुल देनदारी)</TableCell>
+                  <TableCell>🔴 TOTAL EQUITY &amp; LIABILITIES</TableCell>
                   <TableCell />
                   <TableCell className="text-right font-black">{formatINR(realData.totalLiabilitiesAndEquity)}</TableCell>
                   <TableCell />
@@ -1208,7 +1208,7 @@ function BalanceSheetDashboard({
       {/* Footer Info Bar */}
       <div className="flex flex-col sm:flex-row items-center justify-between text-xs text-muted-foreground border-t border-border/60 pt-4 gap-2">
         <div className="flex items-center gap-2">
-          <span>🔒 100% Dynamic DB Ledger Postings. Green = Assets (संपत्ति), Light Red = Liabilities (देनदारी).</span>
+          <span>🔒 100% Dynamic Database Ledger Postings. Green = Assets (Inflows/Owned), Light Red = Liabilities (Outflows/Debt).</span>
         </div>
         <div className="flex items-center gap-2">
           <span>Active Period: {periodLabel}</span>

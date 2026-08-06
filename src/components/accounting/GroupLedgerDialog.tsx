@@ -59,9 +59,9 @@ export function GroupLedgerDialog({
 
   const save = useMutation({
     mutationFn: async () => {
-      if (!companyId || !parent) throw new Error("Company select nahi hui");
+      if (!companyId || !parent) throw new Error("No company selected");
       const clean = name.trim();
-      if (!clean) throw new Error("Naam likhein");
+      if (!clean) throw new Error("Please enter a name");
       if (isLedger) {
         const { error } = await supabase.from("ledgers").insert({
           company_id: companyId,
@@ -85,39 +85,57 @@ export function GroupLedgerDialog({
       }
     },
     onSuccess: () => {
-      toast.success(isLedger ? "Ledger ban gaya" : "Sub-group ban gaya");
+      toast.success(isLedger ? "Ledger Account Created" : "Sub-group Created");
       qc.invalidateQueries({ queryKey: ["ledgers", companyId] });
       qc.invalidateQueries({ queryKey: ["ledger-groups", companyId] });
       onClose();
     },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Save nahi hua"),
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Failed to save"),
   });
 
   const parentOptions = groups
     .filter((g) => g.nature === (target?.parent.nature ?? g.nature))
     .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
 
+  const isAssetNature = parent?.nature === "assets";
+  const isLiabilityNature = parent?.nature === "liabilities";
+
   return (
     <Dialog open={!!target} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{isLedger ? "Naya Ledger" : "Naya Sub-group"}</DialogTitle>
+          <DialogTitle>{isLedger ? "New Ledger Account" : "New Sub-group"}</DialogTitle>
           <DialogDescription>
-            Primary group ke under banega — nature parent se hi milta hai, isliye galat classification nahi hogi.
+            Created under parent group — automatically inherits nature to ensure accurate Balance Sheet reporting.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-3">
+        <div className="space-y-4">
+          {/* Color-Coded Nature Badge Banner */}
+          {isAssetNature && (
+            <div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-500/30 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+              <span className="font-bold flex items-center gap-1 text-emerald-800 dark:text-emerald-200">🟢 ASSET ACCOUNT (Green)</span>
+              <span>Use this when buying Property, Machinery, Furniture, Vehicles, Investments, or Recording Assets.</span>
+            </div>
+          )}
+
+          {isLiabilityNature && (
+            <div className="p-3 rounded-lg bg-rose-50 dark:bg-rose-950/30 border border-rose-500/30 text-xs font-medium text-rose-700 dark:text-rose-300">
+              <span className="font-bold flex items-center gap-1 text-rose-800 dark:text-rose-200">🔴 LIABILITY / CAPITAL ACCOUNT (Light Red)</span>
+              <span>Use this when recording Bank Loans, Borrowings, Capital invested, or Money Payable.</span>
+            </div>
+          )}
+
           <div className="space-y-1.5">
-            <Label>{isLedger ? "Ledger ka naam" : "Sub-group ka naam"}</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Naam likhein" autoFocus />
+            <Label>{isLedger ? "Ledger Name (e.g. Shop Building, Machinery)" : "Sub-group Name"}</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Shop Machinery, Land Property, Bank Loan" autoFocus />
           </div>
 
           <div className="space-y-1.5">
-            <Label>Under (parent group)</Label>
+            <Label>Under Group</Label>
             <Select value={parentId} onValueChange={setParentId}>
               <SelectTrigger>
-                <SelectValue placeholder="Group chunein" />
+                <SelectValue placeholder="Select Group" />
               </SelectTrigger>
               <SelectContent>
                 {parentOptions.map((g) => (
@@ -136,24 +154,24 @@ export function GroupLedgerDialog({
           {isLedger && (
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>Opening balance</Label>
+                <Label>Opening Balance (₹)</Label>
                 <Input
                   type="number"
                   inputMode="decimal"
                   value={opening}
                   onChange={(e) => setOpening(e.target.value)}
-                  placeholder="0"
+                  placeholder="0.00"
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>Dr / Cr</Label>
+                <Label>Balance Type (Dr / Cr)</Label>
                 <Select value={openingType} onValueChange={(v) => setOpeningType(v as "debit" | "credit")}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="debit">Debit</SelectItem>
-                    <SelectItem value="credit">Credit</SelectItem>
+                    <SelectItem value="debit">Debit (In / Asset)</SelectItem>
+                    <SelectItem value="credit">Credit (Out / Debt)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -161,12 +179,12 @@ export function GroupLedgerDialog({
           )}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="mt-4">
           <Button variant="outline" onClick={onClose} disabled={save.isPending}>
             Cancel
           </Button>
-          <Button onClick={() => save.mutate()} disabled={save.isPending || !name.trim()}>
-            {save.isPending ? "Saving…" : "Save"}
+          <Button onClick={() => save.mutate()} disabled={save.isPending || !name.trim()} className="bg-primary">
+            {save.isPending ? "Saving…" : "Save Ledger Account"}
           </Button>
         </DialogFooter>
       </DialogContent>
