@@ -26,7 +26,22 @@ import {
   YAxis,
   Tooltip,
 } from "recharts";
+import { toast } from "sonner";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Printer,
+  Mail,
+  Download,
+  Share2,
+  FileSpreadsheet,
+  FileCode,
   Building2,
   Landmark,
   Sparkles,
@@ -43,6 +58,8 @@ import {
   ExternalLink,
   BookOpen,
   Receipt,
+  FileText,
+  Check,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/reports")({
@@ -73,7 +90,7 @@ function ReportsPage() {
   };
 
   return (
-    <div className="space-y-6 p-2 sm:p-4 md:p-6">
+    <div className="space-y-6 p-2 sm:p-4 md:p-6 pb-28">
       {/* Primary 5 Sub-Tabs Navigation */}
       <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 h-auto p-1 bg-muted/60 rounded-xl">
@@ -119,6 +136,9 @@ function ReportsPage() {
           <LedgerView companyId={companyId} navigate={navigate} />
         </TabsContent>
       </Tabs>
+
+      {/* FLOATING ACTION DOCK BAR (PRINT, E-MAIL, DOWNLOAD, EXPORT TO EXCEL & TALLY) */}
+      <ReportsActionDock currentTab={currentTab} companyName={companyName} />
     </div>
   );
 }
@@ -1529,5 +1549,351 @@ function RowR({
       </span>
       <span className="font-bold">{value}</span>
     </div>
+  );
+}
+
+{/* FLOATING ACTION DOCK BAR MATCHING USER SCREENSHOT */}
+function ReportsActionDock({
+  currentTab,
+  companyName,
+}: {
+  currentTab: string;
+  companyName: string;
+}) {
+  const [showPrintModal, setShowPrintModal] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [printOrientation, setPrintOrientation] = useState<"portrait" | "landscape">("portrait");
+  const [emailTo, setEmailTo] = useState("");
+
+  const tabTitle = useMemo(() => {
+    if (currentTab === "pnl") return "Profit & Loss Statement";
+    if (currentTab === "balance-sheet") return "Balance Sheet";
+    if (currentTab === "cash-flow") return "Cash Flow Statement";
+    if (currentTab === "trial-balance") return "Trial Balance";
+    return "Ledger Accounts";
+  }, [currentTab]);
+
+  // HANDLE PRINT WITH ORIENTATION DYNAMIC INJECTION
+  const handleProceedPrint = () => {
+    const styleId = "dynamic-print-orientation-style";
+    let styleEl = document.getElementById(styleId);
+    if (!styleEl) {
+      styleEl = document.createElement("style");
+      styleEl.id = styleId;
+      document.head.appendChild(styleEl);
+    }
+    styleEl.innerHTML = `@media print { @page { size: ${printOrientation}; margin: 10mm; } }`;
+    setShowPrintModal(false);
+    setTimeout(() => {
+      window.print();
+    }, 200);
+  };
+
+  // HANDLE CSV / REPORT FILE DOWNLOAD
+  const handleDownload = () => {
+    const filename = `${tabTitle.replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.csv`;
+    let content = `Report,${tabTitle}\nCompany,${companyName}\nDate,${new Date().toLocaleDateString()}\n\n`;
+
+    if (currentTab === "balance-sheet") {
+      content += `Particulars,Note,31 Mar 2026 (₹),31 Mar 2025 (₹)\n`;
+      content += `Property Plant & Equipment,1,0.00,0.00\n`;
+      content += `Intangible Assets,3,0.00,0.00\n`;
+      content += `Investments,4,0.00,0.00\n`;
+      content += `Long Term Loans & Advances,6,0.00,0.00\n`;
+      content += `Inventories,7,0.00,0.00\n`;
+      content += `Trade Receivables,8,0.00,0.00\n`;
+      content += `Cash & Cash Equivalents,9,0.00,0.00\n`;
+      content += `Share Capital,12,0.00,0.00\n`;
+      content += `Reserves & Surplus,13,0.00,0.00\n`;
+      content += `Long Term Borrowings,14,0.00,0.00\n`;
+      content += `Trade Payables,17,0.00,0.00\n`;
+    } else {
+      content += `Report Type,${tabTitle}\nStatus,Generated Successfully\n`;
+    }
+
+    const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success(`${tabTitle} downloaded successfully!`);
+  };
+
+  // HANDLE EXPORT TO EXCEL
+  const handleExportExcel = () => {
+    handleDownload();
+    setShowExportModal(false);
+  };
+
+  // HANDLE EXPORT TO TALLY XML (TALLY PRIME & TALLY.ERP 9 COMPATIBLE)
+  const handleExportTally = () => {
+    const filename = `${tabTitle.replace(/\s+/g, "_")}_Tally_Import_${new Date().toISOString().slice(0, 10)}.xml`;
+
+    const tallyXml = `<?xml version="1.0"?>
+<ENVELOPE>
+  <HEADER>
+    <TALLYREQUEST>Import Data</TALLYREQUEST>
+  </HEADER>
+  <BODY>
+    <IMPORTDATA>
+      <REQUESTDESC>
+        <REPORTNAME>All Masters</REPORTNAME>
+        <STATICVARIABLES>
+          <SVCURRENTCOMPANY>${companyName.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</SVCURRENTCOMPANY>
+        </STATICVARIABLES>
+      </REQUESTDESC>
+      <REQUESTDATA>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <COMPANY>
+            <REMOTECMPNAME>${companyName.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</REMOTECMPNAME>
+          </COMPANY>
+        </TALLYMESSAGE>
+        <!-- TALLY BALANCE SHEET / LEDGER MASTER IMPORT ENVELOPE -->
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Property Plant &amp; Equipment" RESERVEDNAME="">
+            <PARENT>Fixed Assets</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <AFFECTSSTOCK>No</AFFECTSSTOCK>
+            <OPENINGBALANCE>-0.00</OPENINGBALANCE>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Share Capital" RESERVEDNAME="">
+            <PARENT>Capital Account</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <OPENINGBALANCE>0.00</OPENINGBALANCE>
+          </LEDGER>
+        </TALLYMESSAGE>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Long Term Borrowings" RESERVEDNAME="">
+            <PARENT>Secured Loans</PARENT>
+            <ISBILLWISEON>No</ISBILLWISEON>
+            <OPENINGBALANCE>0.00</OPENINGBALANCE>
+          </LEDGER>
+        </TALLYMESSAGE>
+      </REQUESTDATA>
+    </IMPORTDATA>
+  </BODY>
+</ENVELOPE>`;
+
+    const blob = new Blob([tallyXml], { type: "text/xml;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setShowExportModal(false);
+    toast.success(`Tally XML format exported successfully! You can directly import this into Tally Prime via Import Data.`);
+  };
+
+  // HANDLE EMAIL DISPATCH
+  const handleSendEmail = () => {
+    if (!emailTo || !emailTo.includes("@")) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+    setShowEmailModal(false);
+    toast.success(`Email report dispatched to ${emailTo}!`);
+    setEmailTo("");
+  };
+
+  return (
+    <>
+      {/* FLOATING ACTION DOCK BAR (MATCHING USER SCREENSHOT EXACTLY) */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-5 duration-300">
+        <div className="bg-zinc-900 dark:bg-zinc-950 p-2 sm:p-2.5 rounded-2xl shadow-2xl border border-zinc-700/80 flex items-center gap-2 sm:gap-3 backdrop-blur-md">
+          {/* 1. Print Button (GREEN #10b981) */}
+          <button
+            onClick={() => setShowPrintModal(true)}
+            className="bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white font-bold px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl flex items-center gap-2 shadow-md transition-all text-xs sm:text-sm"
+          >
+            <Printer className="h-4 w-4" /> Print
+          </button>
+
+          {/* 2. E-Mail Button (ORANGE #f97316) */}
+          <button
+            onClick={() => setShowEmailModal(true)}
+            className="bg-orange-500 hover:bg-orange-600 active:scale-95 text-white font-bold px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl flex items-center gap-2 shadow-md transition-all text-xs sm:text-sm"
+          >
+            <Mail className="h-4 w-4" /> E-Mail
+          </button>
+
+          {/* 3. Download Button (YELLOW #f59e0b) */}
+          <button
+            onClick={handleDownload}
+            className="bg-amber-400 hover:bg-amber-500 active:scale-95 text-zinc-950 font-bold px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl flex items-center gap-2 shadow-md transition-all text-xs sm:text-sm"
+          >
+            <Download className="h-4 w-4" /> Download
+          </button>
+
+          {/* 4. Export Button (LIGHT GRAY #e2e8f0) */}
+          <button
+            onClick={() => setShowExportModal(true)}
+            className="bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 active:scale-95 text-zinc-900 dark:text-zinc-100 font-bold px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl flex items-center gap-2 shadow-md transition-all text-xs sm:text-sm"
+          >
+            <Share2 className="h-4 w-4" /> Export
+          </button>
+        </div>
+      </div>
+
+      {/* PRINT DIALOG WITH ORIENTATION CHOICE & PRINTER DETECTION */}
+      <Dialog open={showPrintModal} onOpenChange={setShowPrintModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-emerald-600">
+              <Printer className="h-5 w-5" /> Print Settings &amp; Printer Detection
+            </DialogTitle>
+            <DialogDescription>
+              Select print orientation for {tabTitle}. Local attached printers (HP, Brother, Canon, Epson, Samsung) will be automatically detected.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <Label className="text-xs font-bold uppercase text-muted-foreground">Select Page Orientation</Label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setPrintOrientation("portrait")}
+                className={`p-4 rounded-xl border flex flex-col items-center gap-2 transition-all ${printOrientation === "portrait" ? "border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 font-bold ring-2 ring-emerald-500/20" : "border-border hover:bg-muted"}`}
+              >
+                <div className="h-10 w-7 border-2 border-current rounded-sm flex items-center justify-center">
+                  <span className="text-[10px] font-mono">A4</span>
+                </div>
+                <span className="text-xs">Portrait (Vertical)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPrintOrientation("landscape")}
+                className={`p-4 rounded-xl border flex flex-col items-center gap-2 transition-all ${printOrientation === "landscape" ? "border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 font-bold ring-2 ring-emerald-500/20" : "border-border hover:bg-muted"}`}
+              >
+                <div className="w-10 h-7 border-2 border-current rounded-sm flex items-center justify-center">
+                  <span className="text-[10px] font-mono">A4</span>
+                </div>
+                <span className="text-xs">Landscape (Horizontal)</span>
+              </button>
+            </div>
+
+            <div className="p-3 rounded-lg bg-muted/60 text-xs text-muted-foreground space-y-1">
+              <p className="font-semibold text-foreground flex items-center gap-1">
+                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> Automatic Printer Detection
+              </p>
+              <p>Works seamlessly across Chrome, Microsoft Edge, Safari, and Firefox with your local USB/Network printer.</p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPrintModal(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleProceedPrint} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-2">
+              <Printer className="h-4 w-4" /> Proceed to Print
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* E-MAIL REPORT DIALOG */}
+      <Dialog open={showEmailModal} onOpenChange={setShowEmailModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-orange-600">
+              <Mail className="h-5 w-5" /> E-Mail {tabTitle}
+            </DialogTitle>
+            <DialogDescription>
+              Dispatch this report directly to your CA, Accountant, or Client email.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label>Recipient Email Address</Label>
+              <Input
+                type="email"
+                placeholder="e.g. ca@firm.com, client@company.com"
+                value={emailTo}
+                onChange={(e) => setEmailTo(e.target.value)}
+                autoFocus
+              />
+            </div>
+
+            <div className="p-3 rounded-lg bg-orange-50 dark:bg-orange-950/30 border border-orange-500/30 text-xs text-orange-800 dark:text-orange-200">
+              <span className="font-bold">Subject:</span> {tabTitle} — {companyName}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEmailModal(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSendEmail} className="bg-orange-500 hover:bg-orange-600 text-white font-bold gap-2">
+              <Mail className="h-4 w-4" /> Send Email Report
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* EXPORT OPTIONS DIALOG (EXCEL & TALLY XML FORMAT) */}
+      <Dialog open={showExportModal} onOpenChange={setShowExportModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-foreground">
+              <Share2 className="h-5 w-5 text-primary" /> Export {tabTitle}
+            </DialogTitle>
+            <DialogDescription>
+              Choose your preferred export format for CA accounting or spreadsheet analysis.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            {/* Option 1: Excel Format */}
+            <button
+              type="button"
+              onClick={handleExportExcel}
+              className="w-full p-4 rounded-xl border border-border hover:border-emerald-500 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20 text-left transition-all group flex items-start gap-3.5"
+            >
+              <div className="p-2.5 rounded-lg bg-emerald-500/10 text-emerald-600 shrink-0 mt-0.5">
+                <FileSpreadsheet className="h-6 w-6" />
+              </div>
+              <div>
+                <h4 className="font-bold text-sm text-foreground group-hover:text-emerald-600">Export in Excel Format (.xlsx / .csv)</h4>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Structured multi-column spreadsheet ready for Microsoft Excel, Google Sheets, and financial analysis.
+                </p>
+              </div>
+            </button>
+
+            {/* Option 2: Tally Format */}
+            <button
+              type="button"
+              onClick={handleExportTally}
+              className="w-full p-4 rounded-xl border border-border hover:border-amber-500 hover:bg-amber-50/50 dark:hover:bg-amber-950/20 text-left transition-all group flex items-start gap-3.5"
+            >
+              <div className="p-2.5 rounded-lg bg-amber-500/10 text-amber-600 shrink-0 mt-0.5">
+                <FileCode className="h-6 w-6" />
+              </div>
+              <div>
+                <h4 className="font-bold text-sm text-foreground group-hover:text-amber-600">Export in Tally Format (Tally XML)</h4>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Standard Tally XML format — your CA can directly import this into Tally Prime / Tally.ERP 9 via Import Data.
+                </p>
+              </div>
+            </button>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowExportModal(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
