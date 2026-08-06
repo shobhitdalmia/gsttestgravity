@@ -2,7 +2,114 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 /**
- * SERVER FUNCTION TO DISPATCH FINANCIAL REPORT EMAILS USING HOSTINGER SMTP
+ * PDF GENERATOR FOR STANDALONE FINANCIAL STATEMENT / BALANCE SHEET
+ * Generates an A4 PDF Buffer matching official CA financial report format
+ */
+async function generateReportPdfBuffer(
+  companyName: string,
+  reportType: string,
+  dateRange: string,
+  realData: Record<string, any>,
+  compData: Record<string, any>
+): Promise<Buffer> {
+  const PDFDocumentMod = await import("pdfkit");
+  const PDFDocument = PDFDocumentMod.default || PDFDocumentMod;
+
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ margin: 40, size: "A4" });
+    const chunks: Buffer[] = [];
+
+    doc.on("data", (chunk: Buffer) => chunks.push(chunk));
+    doc.on("end", () => resolve(Buffer.concat(chunks)));
+    doc.on("error", (err: any) => reject(err));
+
+    const rd = realData || {};
+    const cd = compData || {};
+    const fmt = (val: number) =>
+      new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(Number(val) || 0);
+
+    // Company Header
+    doc.fontSize(18).fillColor("#059669").font("Helvetica-Bold").text(companyName.toUpperCase(), { align: "center" });
+    doc.moveDown(0.3);
+    doc.fontSize(9).fillColor("#334155").font("Helvetica").text(`STANDALONE FINANCIAL STATEMENT — ${reportType.toUpperCase()}`, { align: "center" });
+    doc.fontSize(8.5).fillColor("#475569").font("Helvetica-Oblique").text(`FOR THE YEAR ENDED ${dateRange.toUpperCase()}`, { align: "center" });
+    doc.moveDown(0.8);
+
+    // Horizontal Line
+    doc.moveTo(40, doc.y).lineTo(555, doc.y).strokeColor("#000000").lineWidth(1).stroke();
+    doc.moveDown(0.6);
+
+    // Table Column Headers
+    const startY = doc.y;
+    doc.fontSize(9).font("Helvetica-Bold").fillColor("#000000");
+    doc.text("Particulars", 40, startY, { width: 260 });
+    doc.text("Note", 300, startY, { width: 40, align: "center" });
+    doc.text(`As at ${dateRange}`, 340, startY, { width: 100, align: "right" });
+    doc.text("Previous Year", 445, startY, { width: 110, align: "right" });
+
+    doc.moveDown(0.4);
+    doc.moveTo(40, doc.y).lineTo(555, doc.y).strokeColor("#000000").lineWidth(1.5).stroke();
+    doc.moveDown(0.5);
+
+    const addRow = (particulars: string, note: string, curr: number | string, prev: number | string, isBold = false, indent = 0) => {
+      const y = doc.y;
+      if (y > 740) {
+        doc.addPage();
+      }
+      doc.fontSize(8.5).font(isBold ? "Helvetica-Bold" : "Helvetica").fillColor("#000000");
+      doc.text(particulars, 40 + indent, y, { width: 260 - indent });
+      if (note) doc.text(note, 300, y, { width: 40, align: "center" });
+      doc.text(typeof curr === "number" ? fmt(curr) : curr, 340, y, { width: 100, align: "right" });
+      doc.text(typeof prev === "number" ? fmt(prev) : prev, 445, y, { width: 110, align: "right" });
+      doc.moveDown(0.4);
+    };
+
+    const addLine = (double = false) => {
+      const y = doc.y;
+      doc.moveTo(40, y).lineTo(555, y).strokeColor("#000000").lineWidth(1).stroke();
+      if (double) {
+        doc.moveTo(40, y + 2).lineTo(555, y + 2).strokeColor("#000000").lineWidth(1).stroke();
+      }
+      doc.moveDown(0.3);
+    };
+
+    // ASSETS SECTION
+    addRow("ASSETS", "", "", "", true);
+    addRow("Property Plant & Equipment", "1", rd.propertyPlantEquip, cd.propertyPlantEquip, false, 12);
+    addRow("Capital Work in Progress", "2", 0, 0, false, 12);
+    addRow("Intangible Assets", "3", rd.intangibleAssets, cd.intangibleAssets, false, 12);
+    addRow("Investments", "4", rd.investments, cd.investments, false, 12);
+    addRow("Long Term Loans & Advances", "6", rd.longTermLoans, cd.longTermLoans, false, 12);
+    addRow("Trade Receivables", "8", rd.tradeReceivables, cd.tradeReceivables, false, 12);
+    addRow("Cash & Cash Equivalents", "9", rd.cashBankBalance, cd.cashBankBalance, false, 12);
+    addRow("Inventories", "7", rd.inventories, cd.inventories, false, 12);
+    addLine();
+    addRow("TOTAL ASSETS", "", rd.totalAssets, cd.totalAssets, true);
+    addLine(true);
+
+    doc.moveDown(0.8);
+
+    // EQUITY AND LIABILITIES SECTION
+    addRow("EQUITY AND LIABILITIES", "", "", "", true);
+    addRow("Share Capital / Owner Capital", "12", rd.shareCapital, cd.shareCapital, false, 12);
+    addRow("Reserves & Surplus (Profit)", "13", rd.reservesSurplus, cd.reservesSurplus, false, 12);
+    addRow("Long Term Borrowings", "14", rd.nonCurrentLiabilities, cd.nonCurrentLiabilities, false, 12);
+    addRow("Trade Payables", "17", rd.tradePayables, cd.tradePayables, false, 12);
+    addRow("Short Term Provisions & Output GST", "19", rd.netGstPayable, 0, false, 12);
+    addLine();
+    addRow("TOTAL EQUITY AND LIABILITIES", "", rd.totalLiabilitiesAndEquity, cd.totalLiabilitiesAndEquity, true);
+    addLine(true);
+
+    // Footer Signoff
+    doc.moveDown(2);
+    doc.fontSize(8).font("Helvetica-Oblique").fillColor("#64748b").text("Generated via GST Munshi Financial Platform.", { align: "center" });
+
+    doc.end();
+  });
+}
+
+/**
+ * SERVER FUNCTION TO DISPATCH FINANCIAL REPORT EMAILS WITH PDF ATTACHMENT VIA HOSTINGER SMTP
  * Sender: info@gstmunshi.com
  * Subject: 'Ledger From [Company Name] [Date Range]'
  */
@@ -27,7 +134,7 @@ export const sendReportEmailServerFn = createServerFn({ method: "POST" })
     const SMTP_HOST = process.env.SMTP_HOST || "smtp.hostinger.com";
     const SMTP_PORT = Number(process.env.SMTP_PORT || 465);
     const SMTP_USER = process.env.SMTP_USER || "info@gstmunshi.com";
-    const SMTP_PASS = process.env.SMTP_PASS || process.env.SMTP_PASSWORD || "";
+    const SMTP_PASS = process.env.SMTP_PASS || process.env.SMTP_PASSWORD || "Info@22911555$";
 
     const formattedSubject =
       data.subject || `Ledger From ${companyName} (${dateRange || "FY 2025-26"})`;
@@ -35,134 +142,44 @@ export const sendReportEmailServerFn = createServerFn({ method: "POST" })
     const rd = realData || {};
     const cd = compData || {};
 
-    const formatRupees = (val: number) =>
-      new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(Number(val) || 0);
-
+    // Exact email text requested by user
     const emailHtmlBody = `
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
   <style>
-    body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f4f6f8; margin: 0; padding: 20px; color: #1e293b; }
-    .container { max-width: 650px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-    .header { background: #059669; padding: 24px; text-align: center; color: #ffffff; }
-    .header h1 { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; }
-    .header p { margin: 6px 0 0 0; font-size: 12px; opacity: 0.9; }
-    .body { padding: 24px; }
-    .meta-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; font-size: 13px; color: #166534; }
-    .table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 12px; }
-    .table th { background: #f8fafc; border-bottom: 2px solid #000000; padding: 8px 10px; text-align: left; font-weight: 700; text-transform: uppercase; }
-    .table td { border-bottom: 1px solid #e2e8f0; padding: 8px 10px; }
-    .table .total-row td { font-weight: 800; border-top: 1px solid #000000; border-bottom: 2px solid #000000; background: #f1f5f9; }
-    .footer { background: #f8fafc; padding: 16px; text-align: center; font-size: 11px; color: #64748b; border-top: 1px solid #e2e8f0; }
-    .badge-pdf { display: inline-block; background: #dc2626; color: #ffffff; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 11px; margin-top: 8px; }
+    body { font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #1e293b; line-height: 1.6; padding: 20px; background-color: #f8fafc; }
+    .email-container { max-width: 600px; margin: 0 auto; background: #ffffff; padding: 28px; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+    .firm-name { font-weight: bold; color: #059669; font-size: 16px; margin-top: 16px; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="header">
-      <h1>${companyName}</h1>
-      <p>STANDALONE FINANCIAL STATEMENT — ${reportType.toUpperCase()}</p>
-    </div>
-
-    <div class="body">
-      <div class="meta-box">
-        <strong>From:</strong> ${SMTP_USER} <br/>
-        <strong>To:</strong> ${toEmail} <br/>
-        <strong>Subject:</strong> ${formattedSubject} <br/>
-        <strong>Active Period:</strong> ${dateRange || "FY 2025-26"} <br/>
-        <span class="badge-pdf">📄 Financial Statement &amp; Ledger Included</span>
-      </div>
-
-      <h3 style="font-size:14px; margin-bottom:8px; color:#0f172a;">${reportType} Statement Summary</h3>
-      
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Particulars Account</th>
-            <th style="text-align:right;">As at ${dateRange || "31 Mar 2026"}</th>
-            <th style="text-align:right;">Previous Year</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><strong>ASSETS</strong></td>
-            <td></td>
-            <td></td>
-          </tr>
-          <tr>
-            <td style="padding-left:16px;">(a) Property, Plant &amp; Equipment</td>
-            <td style="text-align:right;">${formatRupees(rd.propertyPlantEquip)}</td>
-            <td style="text-align:right;">${formatRupees(cd.propertyPlantEquip)}</td>
-          </tr>
-          <tr>
-            <td style="padding-left:16px;">(b) Intangible Assets</td>
-            <td style="text-align:right;">${formatRupees(rd.intangibleAssets)}</td>
-            <td style="text-align:right;">${formatRupees(cd.intangibleAssets)}</td>
-          </tr>
-          <tr>
-            <td style="padding-left:16px;">(c) Financial Assets - Trade Receivables</td>
-            <td style="text-align:right;">${formatRupees(rd.tradeReceivables)}</td>
-            <td style="text-align:right;">${formatRupees(cd.tradeReceivables)}</td>
-          </tr>
-          <tr>
-            <td style="padding-left:16px;">(d) Cash &amp; Bank Balances</td>
-            <td style="text-align:right;">${formatRupees(rd.cashBankBalance)}</td>
-            <td style="text-align:right;">${formatRupees(cd.cashBankBalance)}</td>
-          </tr>
-          <tr class="total-row">
-            <td>TOTAL ASSETS</td>
-            <td style="text-align:right;">${formatRupees(rd.totalAssets)}</td>
-            <td style="text-align:right;">${formatRupees(cd.totalAssets)}</td>
-          </tr>
-
-          <tr>
-            <td style="padding-top:12px;"><strong>EQUITY AND LIABILITIES</strong></td>
-            <td></td>
-            <td></td>
-          </tr>
-          <tr>
-            <td style="padding-left:16px;">(a) Equity Share Capital / Owner Capital</td>
-            <td style="text-align:right;">${formatRupees(rd.shareCapital)}</td>
-            <td style="text-align:right;">${formatRupees(cd.shareCapital)}</td>
-          </tr>
-          <tr>
-            <td style="padding-left:16px;">(b) Other Equity (Reserves &amp; Surplus)</td>
-            <td style="text-align:right;">${formatRupees(rd.reservesSurplus)}</td>
-            <td style="text-align:right;">${formatRupees(cd.reservesSurplus)}</td>
-          </tr>
-          <tr>
-            <td style="padding-left:16px;">(c) Trade Payables</td>
-            <td style="text-align:right;">${formatRupees(rd.tradePayables)}</td>
-            <td style="text-align:right;">${formatRupees(cd.tradePayables)}</td>
-          </tr>
-          <tr>
-            <td style="padding-left:16px;">(d) Short Term Provisions &amp; Output GST</td>
-            <td style="text-align:right;">${formatRupees(rd.netGstPayable)}</td>
-            <td style="text-align:right;">${formatRupees(0)}</td>
-          </tr>
-          <tr class="total-row">
-            <td>TOTAL EQUITY AND LIABILITIES</td>
-            <td style="text-align:right;">${formatRupees(rd.totalLiabilitiesAndEquity)}</td>
-            <td style="text-align:right;">${formatRupees(cd.totalLiabilitiesAndEquity)}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div class="footer">
-      This email was sent directly from <strong>${SMTP_USER}</strong> via Hostinger SMTP Engine.<br/>
-      © 2026 GST Munshi. All rights reserved.
-    </div>
+  <div class="email-container">
+    <p>Dear User,</p>
+    <br/>
+    <p>Please find the attached ${reportType.toLowerCase()} for the period <strong>${dateRange || "01-Aug-2026 to 06-Aug-2026"}</strong>.</p>
+    <br/>
+    <p>Feel free to reach out if you have any questions or need clarification.</p>
+    <br/>
+    <p>Best regards,</p>
+    <p class="firm-name">${companyName}</p>
   </div>
 </body>
 </html>
 `;
 
-    // 1. Direct Hostinger SMTP using Nodemailer
-    const smtpPass = SMTP_PASS || "Info@22911555$";
     try {
+      // 1. Generate PDF Attachment Buffer matching CA Standalone Financial Statement
+      const pdfBuffer = await generateReportPdfBuffer(
+        companyName,
+        reportType,
+        dateRange || "FY 2025-26",
+        rd,
+        cd
+      );
+
+      // 2. Initialize Nodemailer with Hostinger SMTP
       const nodemailerMod = await import("nodemailer");
       const nodemailer = nodemailerMod.default || nodemailerMod;
 
@@ -172,18 +189,27 @@ export const sendReportEmailServerFn = createServerFn({ method: "POST" })
         secure: true, // SSL for Port 465
         auth: {
           user: SMTP_USER,
-          pass: smtpPass,
+          pass: SMTP_PASS,
         },
       });
 
+      const pdfFilename = `${companyName.replace(/[^a-zA-Z0-9]/g, "_")}_${reportType.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`;
+
       const info = await transporter.sendMail({
-        from: `"GST Munshi Reports" <${SMTP_USER}>`,
+        from: `"${companyName}" <${SMTP_USER}>`,
         to: toEmail,
         subject: formattedSubject,
         html: emailHtmlBody,
+        attachments: [
+          {
+            filename: pdfFilename,
+            content: pdfBuffer,
+            contentType: "application/pdf",
+          },
+        ],
       });
 
-      console.log("[Hostinger SMTP] Email sent successfully:", info.messageId);
+      console.log("[Hostinger SMTP] Email with PDF sent successfully:", info.messageId);
       return { success: true, provider: "hostinger-smtp", messageId: info.messageId, from: SMTP_USER };
     } catch (err: any) {
       console.error("[Hostinger SMTP] Error:", err);
