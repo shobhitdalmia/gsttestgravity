@@ -1508,78 +1508,83 @@ function ProfitAndLossView({ companyId, fyLabelText }: { companyId?: string; fyL
     },
   });
 
-  // Real Figures Calculation
-  const realSalesTotal = (invoices ?? []).reduce((acc, i) => acc + Number(i.subtotal || i.total || 0), 0);
-  const realPurchasesTotal = (purchases ?? []).reduce((acc, p) => acc + Number(p.subtotal || p.total || 0), 0);
-  const realExpensesTotal = (expenses ?? []).reduce((acc, e) => acc + Number(e.amount || 0), 0);
-
-  // Line items derived from real figures or standards
-  const revFromOps = realSalesTotal || 186000000;
-  const othIncome = Math.round(revFromOps * 0.0032) || 600000;
+  // Real Figures Calculation — PURE DATABASE FIGURES (ZERO FALLBACK DUMMY DATA)
+  const revFromOps = realSalesTotal;
+  const othIncome = (lines.data ?? [])
+    .filter((l) => Number(l.credit || 0) > 0 && Number(l.debit || 0) === 0)
+    .reduce((acc, l) => acc + Number(l.credit || 0), 0);
   const totIncome = revFromOps + othIncome;
 
-  const costOfMat = realPurchasesTotal ? Math.round(realPurchasesTotal * 0.77) : 72000000;
-  const purchStockTrade = realPurchasesTotal ? Math.round(realPurchasesTotal * 0.23) : 21000000;
-  const chgInventories = -3000000;
+  const costOfMat = realPurchasesTotal;
+  const purchStockTrade = 0;
+  const chgInventories = 0;
 
-  const empBenefits = realExpensesTotal ? Math.round(realExpensesTotal * 0.36) : 24000000;
-  const finCosts = realExpensesTotal ? Math.round(realExpensesTotal * 0.11) : 7500000;
-  const deprAmort = realExpensesTotal ? Math.round(realExpensesTotal * 0.09) : 6000000;
-  const othExp = realExpensesTotal ? Math.round(realExpensesTotal * 0.44) : 32500000;
+  const empBenefits = (expenses ?? [])
+    .filter((e) => String(e.category || "").toLowerCase().includes("salary") || String(e.category || "").toLowerCase().includes("employee"))
+    .reduce((s, e) => s + Number(e.amount || 0), 0);
 
+  const finCosts = (expenses ?? [])
+    .filter((e) => String(e.category || "").toLowerCase().includes("bank") || String(e.category || "").toLowerCase().includes("interest"))
+    .reduce((s, e) => s + Number(e.amount || 0), 0);
+
+  const deprAmort = (expenses ?? [])
+    .filter((e) => String(e.category || "").toLowerCase().includes("depreciation"))
+    .reduce((s, e) => s + Number(e.amount || 0), 0);
+
+  const othExp = Math.max(0, realExpensesTotal - (empBenefits + finCosts + deprAmort));
   const totExpenses = costOfMat + purchStockTrade + chgInventories + empBenefits + finCosts + deprAmort + othExp;
 
   const profitBeforeTax = totIncome - totExpenses;
-  const currentTax = profitBeforeTax > 0 ? Math.round(profitBeforeTax * 0.25) : 9000000;
-  const deferredTax = -500000;
+  const currentTax = profitBeforeTax > 0 ? Math.round(profitBeforeTax * 0.25) : 0;
+  const deferredTax = 0;
   const totTaxExp = currentTax + deferredTax;
 
   const netProfitAfterTax = profitBeforeTax - totTaxExp;
 
-  // Previous Year Comparison (FY 2024-25)
-  const prevRevFromOps = Math.round(revFromOps * 0.84);
-  const prevOthIncome = 4500000;
-  const prevTotIncome = prevRevFromOps + prevOthIncome;
+  // Previous Year Comparison — Set to 0 if no prior database entries exist (NO SCALED DUMMY VALUES)
+  const prevRevFromOps = 0;
+  const prevOthIncome = 0;
+  const prevTotIncome = 0;
 
-  const prevCostOfMat = Math.round(costOfMat * 0.80);
-  const prevPurchStockTrade = Math.round(purchStockTrade * 0.81);
-  const prevChgInventories = -2000000;
-  const prevEmpBenefits = Math.round(empBenefits * 0.85);
-  const prevFinCosts = Math.round(finCosts * 0.80);
-  const prevDeprAmort = Math.round(deprAmort * 0.83);
-  const prevOthExp = Math.round(othExp * 0.87);
+  const prevCostOfMat = 0;
+  const prevPurchStockTrade = 0;
+  const prevChgInventories = 0;
+  const prevEmpBenefits = 0;
+  const prevFinCosts = 0;
+  const prevDeprAmort = 0;
+  const prevOthExp = 0;
 
-  const prevTotExpenses = prevCostOfMat + prevPurchStockTrade + prevChgInventories + prevEmpBenefits + prevFinCosts + prevDeprAmort + prevOthExp;
-  const prevProfitBeforeTax = prevTotIncome - prevTotExpenses;
-  const prevCurrentTax = Math.round(prevProfitBeforeTax * 0.245);
-  const prevDeferredTax = -500000;
-  const prevTotTaxExp = prevCurrentTax + prevDeferredTax;
-  const prevNetProfitAfterTax = prevProfitBeforeTax - prevTotTaxExp;
+  const prevTotExpenses = 0;
+  const prevProfitBeforeTax = 0;
+  const prevCurrentTax = 0;
+  const prevDeferredTax = 0;
+  const prevTotTaxExp = 0;
+  const prevNetProfitAfterTax = 0;
 
   // Key Ratios
-  const grossProfitVal = totIncome - (costOfMat + purchStockTrade);
+  const grossProfitVal = totIncome - costOfMat;
   const ebitdaVal = profitBeforeTax + finCosts + deprAmort;
-  const grossMarginPct = totIncome > 0 ? ((grossProfitVal / totIncome) * 100).toFixed(2) : "39.52";
-  const ebitdaMarginPct = totIncome > 0 ? ((ebitdaVal / totIncome) * 100).toFixed(2) : "25.81";
-  const netMarginPct = totIncome > 0 ? ((netProfitAfterTax / totIncome) * 100).toFixed(2) : "16.05";
-  const epsVal = (netProfitAfterTax / 1000000).toFixed(2);
+  const grossMarginPct = totIncome > 0 ? ((grossProfitVal / totIncome) * 100).toFixed(2) : "0.00";
+  const ebitdaMarginPct = totIncome > 0 ? ((ebitdaVal / totIncome) * 100).toFixed(2) : "0.00";
+  const netMarginPct = totIncome > 0 ? ((netProfitAfterTax / totIncome) * 100).toFixed(2) : "0.00";
+  const epsVal = (netProfitAfterTax / 100000).toFixed(2);
 
-  // Recharts Chart Data
+  // Recharts Chart Data (Derived directly from real figures)
   const profitTrendData = [
-    { year: "FY 2021-22", profit: 1.25, margin: 12.25 },
-    { year: "FY 2022-23", profit: 1.58, margin: 12.50 },
-    { year: "FY 2023-24", profit: 1.92, margin: 13.05 },
-    { year: "FY 2024-25", profit: 2.20, margin: 14.06 },
-    { year: "FY 2025-26", profit: Number((netProfitAfterTax / 10000000).toFixed(2)) || 2.75, margin: Number(netMarginPct) || 16.05 },
+    { year: "FY 2021-22", profit: 0, margin: 0 },
+    { year: "FY 2022-23", profit: 0, margin: 0 },
+    { year: "FY 2023-24", profit: 0, margin: 0 },
+    { year: "FY 2024-25", profit: 0, margin: 0 },
+    { year: label || "FY 2025-26", profit: Number((netProfitAfterTax / 10000000).toFixed(2)), margin: Number(netMarginPct) },
   ];
 
   const expenseDistData = [
-    { name: "Cost of Materials Consumed", value: costOfMat, color: "#2563eb", pct: "48.00%" },
-    { name: "Employee Benefits Expense", value: empBenefits, color: "#16a34a", pct: "16.00%" },
-    { name: "Other Expenses", value: othExp, color: "#d97706", pct: "13.00%" },
-    { name: "Purchases of Stock-in-Trade", value: purchStockTrade, color: "#9333ea", pct: "14.00%" },
-    { name: "Finance Costs", value: finCosts, color: "#dc2626", pct: "5.00%" },
-    { name: "Depreciation & Amortisation", value: deprAmort, color: "#0891b2", pct: "4.00%" },
+    { name: "Cost of Materials Consumed", value: costOfMat, color: "#2563eb", pct: totExpenses > 0 ? `${((costOfMat / totExpenses) * 100).toFixed(1)}%` : "0%" },
+    { name: "Employee Benefits Expense", value: empBenefits, color: "#16a34a", pct: totExpenses > 0 ? `${((empBenefits / totExpenses) * 100).toFixed(1)}%` : "0%" },
+    { name: "Other Expenses", value: othExp, color: "#d97706", pct: totExpenses > 0 ? `${((othExp / totExpenses) * 100).toFixed(1)}%` : "0%" },
+    { name: "Purchases of Stock-in-Trade", value: purchStockTrade, color: "#9333ea", pct: "0%" },
+    { name: "Finance Costs", value: finCosts, color: "#dc2626", pct: totExpenses > 0 ? `${((finCosts / totExpenses) * 100).toFixed(1)}%` : "0%" },
+    { name: "Depreciation & Amortisation", value: deprAmort, color: "#0891b2", pct: totExpenses > 0 ? `${((deprAmort / totExpenses) * 100).toFixed(1)}%` : "0%" },
   ];
 
   const calcDiff = (curr: number, prev: number) => {
@@ -2322,7 +2327,7 @@ function TrialBalanceView({ companyId, navigate }: { companyId?: string; navigat
             <div>
               <p className="text-xs text-slate-500 font-medium">Total Debit</p>
               <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
-                {formatINR(totalClosingDebit || 147800000)}
+                {formatINR(totalClosingDebit)}
               </h3>
             </div>
           </div>
@@ -2340,7 +2345,7 @@ function TrialBalanceView({ companyId, navigate }: { companyId?: string; navigat
             <div>
               <p className="text-xs text-slate-500 font-medium">Total Credit</p>
               <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
-                {formatINR(totalClosingCredit || 147800000)}
+                {formatINR(totalClosingCredit)}
               </h3>
             </div>
           </div>
@@ -2376,13 +2381,13 @@ function TrialBalanceView({ companyId, navigate }: { companyId?: string; navigat
             <div>
               <p className="text-xs text-slate-500 font-medium">Opening Balance</p>
               <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
-                {formatINR(Math.abs(totalOpDebit - totalOpCredit) || 38245000)}
+                {formatINR(Math.abs(totalOpDebit - totalOpCredit))}
               </h3>
             </div>
           </div>
           <div className="text-[10px] text-slate-500 space-y-0.5 pt-1 border-t border-slate-100 dark:border-slate-800">
-            <div>Debit: {formatINR(totalOpDebit || 24580000)}</div>
-            <div>Credit: {formatINR(totalOpCredit || 13665000)}</div>
+            <div>Debit: {formatINR(totalOpDebit)}</div>
+            <div>Credit: {formatINR(totalOpCredit)}</div>
           </div>
         </div>
 
@@ -2395,13 +2400,13 @@ function TrialBalanceView({ companyId, navigate }: { companyId?: string; navigat
             <div>
               <p className="text-xs text-slate-500 font-medium">Closing Balance</p>
               <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
-                {formatINR(Math.abs(totalClosingDebit - totalClosingCredit) || 42132000)}
+                {formatINR(Math.abs(totalClosingDebit - totalClosingCredit))}
               </h3>
             </div>
           </div>
           <div className="text-[10px] text-slate-500 space-y-0.5 pt-1 border-t border-slate-100 dark:border-slate-800">
-            <div>Debit: {formatINR(totalClosingDebit || 24875000)}</div>
-            <div>Credit: {formatINR(totalClosingCredit || 15257000)}</div>
+            <div>Debit: {formatINR(totalClosingDebit)}</div>
+            <div>Credit: {formatINR(totalClosingCredit)}</div>
           </div>
         </div>
       </div>
@@ -2613,11 +2618,11 @@ function TrialBalanceView({ companyId, navigate }: { companyId?: string; navigat
             <div className="flex flex-wrap items-center gap-6 text-xs sm:text-sm font-semibold">
               <div>
                 <span className="text-slate-500 font-normal">Total Debit: </span>
-                <span className="text-emerald-600 dark:text-emerald-400 font-bold">{formatINR(totalClosingDebit || 147800000)}</span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-bold">{formatINR(totalClosingDebit)}</span>
               </div>
               <div>
                 <span className="text-slate-500 font-normal">Total Credit: </span>
-                <span className="text-orange-600 dark:text-orange-400 font-bold">{formatINR(totalClosingCredit || 147800000)}</span>
+                <span className="text-orange-600 dark:text-orange-400 font-bold">{formatINR(totalClosingCredit)}</span>
               </div>
               <div>
                 <span className="text-slate-500 font-normal">Difference: </span>
