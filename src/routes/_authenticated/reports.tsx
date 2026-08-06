@@ -294,6 +294,35 @@ function BalanceSheetDashboard({
     },
   });
 
+  // COMPARISON REAL QUERIES
+  const compInvoices = useQuery({
+    enabled: !!companyId && compareMode !== "none",
+    queryKey: ["bs-comp-invoices", companyId, compFromDate, compToDate],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("invoices")
+        .select("total, subtotal, amount_paid")
+        .eq("company_id", companyId!)
+        .gte("invoice_date", compFromDate)
+        .lte("invoice_date", compToDate);
+      return data ?? [];
+    },
+  });
+
+  const compPurchases = useQuery({
+    enabled: !!companyId && compareMode !== "none",
+    queryKey: ["bs-comp-purchases", companyId, compFromDate, compToDate],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("purchases")
+        .select("total, subtotal, amount_paid")
+        .eq("company_id", companyId!)
+        .gte("bill_date", compFromDate)
+        .lte("bill_date", compToDate);
+      return data ?? [];
+    },
+  });
+
   // Calculate LEDGER CLOSING BALANCES from voucher lines + opening balances
   const ledgerBalancesMap = useMemo(() => {
     if (!ledgers) return new Map();
