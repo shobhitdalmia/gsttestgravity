@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
   ArrowRight,
@@ -192,14 +193,19 @@ function Landing() {
         <div className="mx-auto max-w-[1600px] w-full px-4 md:px-6">
           <div className="grid gap-12 lg:grid-cols-12 items-center">
             {/* Left Content */}
-            <div className="lg:col-span-7 text-center lg:text-left">
+            <motion.div
+              initial={{ opacity: 0, x: -30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+              className="lg:col-span-7 text-center lg:text-left"
+            >
               <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-xs font-semibold text-primary backdrop-blur-xs">
                 <Sparkles className="h-4 w-4 text-accent fill-accent" />
-                GST-Ready Billing & Accounting • Made in India 🇮🇳
+                GST-Ready Billing &amp; Accounting • Made in India 🇮🇳
               </div>
 
               <h1 className="mt-6 text-4xl sm:text-5xl lg:text-6xl font-display font-extrabold tracking-tight leading-[1.1]">
-                Billing, Stock aur GST — <br className="hidden sm:inline" />
+                Your Finance at a Glance — <br className="hidden sm:inline" />
                 <span className="bg-gradient-to-r from-primary via-emerald-600 to-teal-700 bg-clip-text text-transparent">
                   Sahi Hisab, Pakka Vishwas.
                 </span>
@@ -210,35 +216,46 @@ function Landing() {
                 Kuch hi seconds mein GST tax invoices banayein, inventory auto-track karein, party balances manage karein aur GSTR-1 / 3B reports ready karein!
               </p>
 
-              <div className="mt-8 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
-                <Link to="/auth" className="w-full sm:w-auto">
-                  <Button size="lg" className="w-full sm:w-auto gap-2 text-base px-8 h-12 shadow-lg shadow-primary/20">
-                    Start Free — No Credit Card <ArrowRight className="h-5 w-5" />
-                  </Button>
-                </Link>
-                <a href="#demo" className="w-full sm:w-auto">
-                  <Button size="lg" variant="outline" className="w-full sm:w-auto text-base h-12 border-border/80 hover:bg-card">
-                    Live Demo Dekhein
-                  </Button>
-                </a>
+              <div className="mt-8 flex flex-wrap items-center justify-center lg:justify-start gap-3">
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Link to="/auth" className="w-full sm:w-auto">
+                    <Button size="lg" className="w-full sm:w-auto gap-2 text-base px-8 h-12 shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90 text-primary-foreground font-bold">
+                      Start Free — No Credit Card <ArrowRight className="h-5 w-5" />
+                    </Button>
+                  </Link>
+                </motion.div>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Link to="/sales/new">
+                    <Button size="lg" variant="outline" className="gap-2 text-base h-12 border-border/80 hover:bg-card">
+                      + New Invoice
+                    </Button>
+                  </Link>
+                </motion.div>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Link to="/reports" search={{ tab: "balance-sheet" }}>
+                    <Button size="lg" variant="outline" className="gap-2 text-base h-12 border-border/80 hover:bg-card">
+                      <BarChart3 className="h-4 w-4" /> Reports
+                    </Button>
+                  </Link>
+                </motion.div>
               </div>
 
               {/* Trust Badges */}
               <div className="mt-10 pt-6 border-t border-border/60 grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs font-medium text-muted-foreground">
                 <div className="flex items-center justify-center lg:justify-start gap-2">
                   <ShieldCheck className="h-5 w-5 text-emerald-600" />
-                  <span>100% Safe & Encrypted</span>
+                  <span>100% Safe &amp; Encrypted</span>
                 </div>
                 <div className="flex items-center justify-center lg:justify-start gap-2">
                   <FileCheck2 className="h-5 w-5 text-emerald-600" />
-                  <span>GSTR-1 & 3B Auto Ready</span>
+                  <span>GSTR-1 &amp; 3B Auto Ready</span>
                 </div>
                 <div className="flex items-center justify-center lg:justify-start gap-2 col-span-2 sm:col-span-1">
                   <Send className="h-5 w-5 text-emerald-600" />
                   <span>Instant WhatsApp Bill</span>
                 </div>
               </div>
-            </div>
+            </motion.div>
 
             {/* Right Interactive Mockup / Hero Card */}
             <div className="lg:col-span-5 relative">

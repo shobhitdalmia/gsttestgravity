@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { motion } from "framer-motion";
 import {
   TrendingUp,
   Receipt,
@@ -23,6 +24,9 @@ import {
   UserPlus,
   FileText,
   BookOpen,
+  Sparkles,
+  BarChart3,
+  ArrowRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -168,44 +172,88 @@ function Dashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Hero */}
-      <div
-        className="grid gap-4 rounded-2xl p-5 text-primary-foreground sm:p-6 md:grid-cols-[minmax(0,1fr)_auto] md:items-center"
+      {/* Framer Motion Animated Hero Section (UI/UX Pro Max Enhanced) */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className="relative overflow-hidden rounded-2xl p-6 sm:p-8 text-primary-foreground shadow-xl border border-primary/20"
         style={{ background: "var(--gradient-hero)" }}
       >
-        <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] opacity-80">{periodLabel}</p>
-          <h1 className="mt-1 truncate font-display text-2xl font-extrabold sm:text-3xl">
-            {company.data?.name ?? "Aapka business"}
-          </h1>
-          <p className="mt-1 text-sm opacity-85">
-            {d?.sales.count ?? 0} invoices · {formatINR(d?.sales.total ?? 0)} sales · margin{" "}
-            {(d?.profit.marginPct ?? 0).toFixed(1)}%
-          </p>
+        {/* Animated glowing backdrop aura */}
+        <motion.div
+          animate={{
+            scale: [1, 1.15, 1],
+            opacity: [0.15, 0.25, 0.15],
+          }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute -top-24 -right-24 h-96 w-96 rounded-full bg-white/20 blur-3xl pointer-events-none"
+        />
+
+        <div className="relative z-10 grid gap-6 lg:grid-cols-12 items-center">
+          {/* Left Title & Subtitle */}
+          <div className="lg:col-span-7 space-y-3">
+            <motion.div
+              initial={{ opacity: 0, x: -15 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1, duration: 0.4 }}
+              className="inline-flex items-center gap-2 rounded-full bg-white/15 backdrop-blur-md px-3.5 py-1 text-xs font-bold tracking-wide uppercase shadow-xs border border-white/20"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-amber-300 fill-amber-300" />
+              <span>{periodLabel}</span>
+              <span className="opacity-60">•</span>
+              <span className="font-extrabold">{company.data?.name ?? "Aapka Business"}</span>
+            </motion.div>
+
+            <motion.h1
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+              className="font-display text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-tight drop-shadow-xs"
+            >
+              Your Finance at a Glance
+            </motion.h1>
+
+            <motion.p
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.4 }}
+              className="text-sm sm:text-base opacity-90 max-w-xl font-medium leading-relaxed"
+            >
+              {d?.sales.count ?? 0} total invoices · <span className="font-bold">{formatINR(d?.sales.total ?? 0)}</span> total sales · margin{" "}
+              <span className="font-bold text-amber-300">{(d?.profit.marginPct ?? 0).toFixed(1)}%</span>
+            </motion.p>
+          </div>
+
+          {/* Right Action Buttons */}
+          <div className="lg:col-span-5 flex flex-wrap lg:justify-end gap-2.5">
+            {[
+              { label: "New Invoice", icon: Plus, to: "/sales/new", color: "bg-white text-slate-950 hover:bg-slate-100 font-bold" },
+              { label: "New Purchase", icon: ShoppingBag, to: "/purchases/new", search: { draft: undefined }, color: "bg-white/15 text-white backdrop-blur-md border border-white/25 hover:bg-white/25" },
+              { label: "Payment Receive", icon: ArrowDownToLine, to: "/payments", color: "bg-white/15 text-white backdrop-blur-md border border-white/25 hover:bg-white/25" },
+              { label: "Reports", icon: BarChart3, to: "/reports", search: { tab: "balance-sheet" }, color: "bg-white/15 text-white backdrop-blur-md border border-white/25 hover:bg-white/25" },
+              { label: "Products", icon: Boxes, to: "/products", color: "bg-white/15 text-white backdrop-blur-md border border-white/25 hover:bg-white/25" },
+              { label: "Parties", icon: Users, to: "/parties", color: "bg-white/15 text-white backdrop-blur-md border border-white/25 hover:bg-white/25" },
+            ].map((btn, idx) => (
+              <motion.div
+                key={btn.label}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.3 + idx * 0.05, duration: 0.3 }}
+                whileHover={{ scale: 1.05, y: -2 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Link to={btn.to} search={btn.search}>
+                  <Button className={`gap-2 text-xs sm:text-sm h-10 px-4 rounded-xl shadow-md transition-shadow ${btn.color}`}>
+                    <btn.icon className="h-4 w-4 shrink-0" />
+                    <span>{btn.label}</span>
+                  </Button>
+                </Link>
+              </motion.div>
+            ))}
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Link to="/sales/new">
-            <Button variant="secondary" className="gap-2">
-              <Plus className="h-4 w-4" /> New Invoice
-            </Button>
-          </Link>
-          <Link to="/purchases/new" search={{ draft: undefined }}>
-            <Button variant="secondary" className="gap-2">
-              <ShoppingBag className="h-4 w-4" /> New Purchase
-            </Button>
-          </Link>
-          <Link to="/payments">
-            <Button variant="secondary" className="gap-2">
-              <ArrowDownToLine className="h-4 w-4" /> Payment Receive
-            </Button>
-          </Link>
-          <Link to="/payments">
-            <Button variant="secondary" className="gap-2">
-              <ArrowUpFromLine className="h-4 w-4" /> Payment Pay
-            </Button>
-          </Link>
-        </div>
-      </div>
+      </motion.div>
 
       {/* 12 colourful KPI tiles */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
