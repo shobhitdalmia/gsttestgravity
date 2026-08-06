@@ -172,19 +172,86 @@
   border: 1px solid var(--color-border);
 }
 
-/* ---------- Invoice printing ---------- */
+/* ---------- Professional Report & Document Printing ---------- */
 @media print {
-  body { background: #fff !important; }
-  body * { visibility: hidden !important; box-shadow: none !important; }
-  .no-print, .no-print * { display: none !important; }
-  .print-area-visible, .print-area-visible * { visibility: visible !important; }
-  .print-area-visible {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
+  @page {
+    margin: 12mm;
+    size: auto;
   }
-  .print-area-visible * { color: #000 !important; }
+  
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+    font-family: system-ui, -apple-system, sans-serif !important;
+  }
+
+  /* Hide navigation, sidebars, headers, floating bars, and non-print UI */
+  header, nav, sidebar, footer,
+  .no-print, .no-print *,
+  [role="navigation"],
+  [data-aria-hidden="true"] {
+    display: none !important;
+  }
+
+  /* Force print container visibility */
+  .printable-report-area,
+  .printable-report-area *,
+  .print-area-visible,
+  .print-area-visible * {
+    visibility: visible !important;
+  }
+
+  .printable-report-area,
+  .print-area-visible {
+    position: static !important;
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+    border: none !important;
+    overflow: visible !important;
+  }
+
+  /* Table styling for print */
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    page-break-inside: auto !important;
+  }
+
+  tr {
+    page-break-inside: avoid !important;
+    page-break-after: auto !important;
+  }
+
+  thead {
+    display: table-header-group !important;
+  }
+
+  tfoot {
+    display: table-footer-group !important;
+  }
+
+  th, td {
+    border: 1px solid #d1d5db !important;
+    padding: 6px 10px !important;
+    color: #000000 !important;
+    background: transparent !important;
+  }
+
+  /* Hide shadows, gradients, dark backgrounds */
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+    background-color: transparent !important;
+  }
 }
 
 /* ---------- Dashboard KPI palette ---------- */

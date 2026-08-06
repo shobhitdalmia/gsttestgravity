@@ -587,9 +587,20 @@ function BalanceSheetDashboard({
   }, [realData]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 printable-report-area print-area-visible">
+      {/* PRINT-ONLY FORMAL BS1 SCHEDULE III HEADER (EXCEL BS1 FORMAT) */}
+      <div className="hidden print:block text-center space-y-1 mb-6 border-b-2 border-black pb-4">
+        <h1 className="text-xl font-bold uppercase tracking-wider">{companyName}</h1>
+        <p className="text-xs font-semibold uppercase">
+          NOTES FORMING PART OF THE STANDALONE FINANCIAL STATEMENTS FOR THE YEAR ENDED MARCH 31, 2026
+        </p>
+        <p className="text-[11px] font-mono text-zinc-700">
+          (Amounts in Indian Rupees — ₹)
+        </p>
+      </div>
+
       {/* Header Title Bar */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-border/80 pb-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-border/80 pb-4 no-print">
         <div>
           <h1 className="font-display text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
             Balance Sheet
@@ -615,7 +626,7 @@ function BalanceSheetDashboard({
       </div>
 
       {/* TIME SWITCHER CONTROLS BAR */}
-      <div className="card-surface p-4 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border">
+      <div className="card-surface p-4 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border no-print">
         <div className="flex flex-wrap items-center gap-3">
           {/* Financial Year Selector */}
           <div className="flex items-center gap-2">
@@ -732,7 +743,7 @@ function BalanceSheetDashboard({
       </div>
 
       {/* 5 TOP REAL KPI CARDS WITH COLOR CODING */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 no-print">
         {/* Card 1: Total Assets (GREEN) */}
         <div className="rounded-xl border border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/20 p-4 shadow-xs">
           <div className="flex items-center justify-between">
@@ -825,7 +836,7 @@ function BalanceSheetDashboard({
       </div>
 
       {/* 4 VISUAL CHARTS GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 no-print">
         {/* Chart 1: Assets vs Liabilities Trend */}
         <div className="rounded-xl border border-border bg-card p-4 shadow-xs">
           <h4 className="font-display text-sm font-bold text-foreground">Assets vs Liabilities Trend</h4>
@@ -1590,24 +1601,52 @@ function ReportsActionDock({
     }, 200);
   };
 
-  // HANDLE CSV / REPORT FILE DOWNLOAD
+  // HANDLE CSV / REPORT FILE DOWNLOAD (EXACT BS1 SCHEDULE III FORMAT MATCHING USER EXCEL)
   const handleDownload = () => {
-    const filename = `${tabTitle.replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.csv`;
-    let content = `Report,${tabTitle}\nCompany,${companyName}\nDate,${new Date().toLocaleDateString()}\n\n`;
+    const filename = `${companyName.replace(/\s+/g, "_")}_${tabTitle.replace(/\s+/g, "_")}_BS1_${new Date().toISOString().slice(0, 10)}.csv`;
+    let content = `"${companyName}"\n`;
+    content += `"NOTES FORMING PART OF THE STANDALONE FINANCIAL STATEMENTS FOR THE YEAR ENDED MARCH 31, 2026"\n\n`;
 
     if (currentTab === "balance-sheet") {
-      content += `Particulars,Note,31 Mar 2026 (₹),31 Mar 2025 (₹)\n`;
-      content += `Property Plant & Equipment,1,0.00,0.00\n`;
-      content += `Intangible Assets,3,0.00,0.00\n`;
-      content += `Investments,4,0.00,0.00\n`;
-      content += `Long Term Loans & Advances,6,0.00,0.00\n`;
-      content += `Inventories,7,0.00,0.00\n`;
-      content += `Trade Receivables,8,0.00,0.00\n`;
-      content += `Cash & Cash Equivalents,9,0.00,0.00\n`;
-      content += `Share Capital,12,0.00,0.00\n`;
-      content += `Reserves & Surplus,13,0.00,0.00\n`;
-      content += `Long Term Borrowings,14,0.00,0.00\n`;
-      content += `Trade Payables,17,0.00,0.00\n`;
+      content += `,Note,Particulars,As at March 31 2026 (Amount in Rs),As at March 31 2025 (Amount in Rs)\n`;
+      content += `,3,SHARE CAPITAL,,\n`;
+      content += `,,AUTHORISED,,\n`;
+      content += `,,Equity Share Capital,,\n`;
+      content += `,,"149,900 Class A Equity Shares of Rs. 10/- each",1499000,1199000\n`;
+      content += `,,"100 Class B Equity Shares of Rs. 10/- each",1000,1000\n`;
+      content += `,,Preference Share Capital,,\n`;
+      content += `,,"66,450 Series A Compulsorily Convertible Preference Shares of Rs. 10 each",664500,664500\n`;
+      content += `,,"88,550 Series B Compulsorily Convertible Preference Shares of Rs. 10 each",885500,885500\n`;
+      content += `,,Total Authorised Capital,3049000,2749000\n\n`;
+
+      content += `,,ISSUED SUBSCRIBED AND FULLY PAID UP,,\n`;
+      content += `,,Equity Share Capital,,\n`;
+      content += `,,"102,590 Class A Equity Shares of Rs. 10/- each",1025900,1024900\n`;
+      content += `,,"100 Class B Equity Shares of Rs. 10/- each",1000,1000\n`;
+      content += `,,Preference Share capital,,\n`;
+      content += `,,"66,350 Series A Preference Shares of Rs. 10 each",663500,663500\n`;
+      content += `,,"85,195 Series B Preference Shares of Rs. 10 each",851950,851950\n`;
+      content += `,,Total Issued & Paid Up Capital,2542350,2541350\n\n`;
+
+      content += `,,ASSETS,,\n`;
+      content += `,1,Property Plant & Equipment,0.00,0.00\n`;
+      content += `,2,Capital Work in Progress,0.00,0.00\n`;
+      content += `,3,Intangible Assets,0.00,0.00\n`;
+      content += `,4,Investments,0.00,0.00\n`;
+      content += `,5,Deferred Tax Assets (Net),0.00,0.00\n`;
+      content += `,6,Long Term Loans & Advances,0.00,0.00\n`;
+      content += `,7,Inventories,0.00,0.00\n`;
+      content += `,8,Trade Receivables,0.00,0.00\n`;
+      content += `,9,Cash & Cash Equivalents,0.00,0.00\n`;
+      content += `,,Total Assets,0.00,0.00\n\n`;
+
+      content += `,,EQUITY AND LIABILITIES,,\n`;
+      content += `,12,Share Capital / Owner Capital,0.00,0.00\n`;
+      content += `,13,Reserves & Surplus,0.00,0.00\n`;
+      content += `,14,Long Term Borrowings,0.00,0.00\n`;
+      content += `,17,Trade Payables,0.00,0.00\n`;
+      content += `,19,Short Term Provisions & Output GST,0.00,0.00\n`;
+      content += `,,Total Equity & Liabilities,0.00,0.00\n`;
     } else {
       content += `Report Type,${tabTitle}\nStatus,Generated Successfully\n`;
     }
@@ -1620,7 +1659,7 @@ function ReportsActionDock({
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    toast.success(`${tabTitle} downloaded successfully!`);
+    toast.success(`${tabTitle} (BS1 Format) downloaded successfully!`);
   };
 
   // HANDLE EXPORT TO EXCEL
@@ -1631,7 +1670,7 @@ function ReportsActionDock({
 
   // HANDLE EXPORT TO TALLY XML (TALLY PRIME & TALLY.ERP 9 COMPATIBLE)
   const handleExportTally = () => {
-    const filename = `${tabTitle.replace(/\s+/g, "_")}_Tally_Import_${new Date().toISOString().slice(0, 10)}.xml`;
+    const filename = `${companyName.replace(/\s+/g, "_")}_${tabTitle.replace(/\s+/g, "_")}_Tally_Import_${new Date().toISOString().slice(0, 10)}.xml`;
 
     const tallyXml = `<?xml version="1.0"?>
 <ENVELOPE>
@@ -1652,7 +1691,7 @@ function ReportsActionDock({
             <REMOTECMPNAME>${companyName.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</REMOTECMPNAME>
           </COMPANY>
         </TALLYMESSAGE>
-        <!-- TALLY BALANCE SHEET / LEDGER MASTER IMPORT ENVELOPE -->
+        <!-- TALLY BALANCE SHEET / LEDGER MASTER IMPORT ENVELOPE (BS1 FORMAT) -->
         <TALLYMESSAGE xmlns:UDF="TallyUDF">
           <LEDGER NAME="Property Plant &amp; Equipment" RESERVEDNAME="">
             <PARENT>Fixed Assets</PARENT>
@@ -1705,40 +1744,52 @@ function ReportsActionDock({
 
   return (
     <>
-      {/* FLOATING ACTION DOCK BAR (MATCHING USER SCREENSHOT EXACTLY) */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-5 duration-300">
-        <div className="bg-zinc-900 dark:bg-zinc-950 p-2 sm:p-2.5 rounded-2xl shadow-2xl border border-zinc-700/80 flex items-center gap-2 sm:gap-3 backdrop-blur-md">
-          {/* 1. Print Button (GREEN #10b981) */}
-          <button
-            onClick={() => setShowPrintModal(true)}
-            className="bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white font-bold px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl flex items-center gap-2 shadow-md transition-all text-xs sm:text-sm"
-          >
-            <Printer className="h-4 w-4" /> Print
-          </button>
+      {/* INLINE THEMED ACTION BAR AT THE BOTTOM OF THE PAGE (MATCHING GREEN & WHITE WEBSITE PALETTE) */}
+      <div className="mt-8 p-4 sm:p-5 rounded-2xl border border-emerald-500/20 bg-card shadow-xs no-print flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div>
+          <h4 className="font-display text-sm font-extrabold text-foreground flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-emerald-600" /> Report Actions &amp; Export Center
+          </h4>
+          <p className="text-xs text-muted-foreground font-medium">
+            Print, Email, or Export {tabTitle} in Excel (.csv) or Tally XML format for your CA.
+          </p>
+        </div>
 
-          {/* 2. E-Mail Button (ORANGE #f97316) */}
-          <button
+        <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
+          {/* 1. Print Button (THEME GREEN SOLID) */}
+          <Button
+            onClick={() => setShowPrintModal(true)}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-xs text-xs sm:text-sm border border-emerald-600"
+          >
+            <Printer className="h-4 w-4" /> Print Report
+          </Button>
+
+          {/* 2. E-Mail Button (THEME GREEN OUTLINE) */}
+          <Button
+            variant="outline"
             onClick={() => setShowEmailModal(true)}
-            className="bg-orange-500 hover:bg-orange-600 active:scale-95 text-white font-bold px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl flex items-center gap-2 shadow-md transition-all text-xs sm:text-sm"
+            className="border-emerald-600/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 text-xs sm:text-sm"
           >
             <Mail className="h-4 w-4" /> E-Mail
-          </button>
+          </Button>
 
-          {/* 3. Download Button (YELLOW #f59e0b) */}
-          <button
+          {/* 3. Download Button (THEME GREEN OUTLINE) */}
+          <Button
+            variant="outline"
             onClick={handleDownload}
-            className="bg-amber-400 hover:bg-amber-500 active:scale-95 text-zinc-950 font-bold px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl flex items-center gap-2 shadow-md transition-all text-xs sm:text-sm"
+            className="border-emerald-600/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 text-xs sm:text-sm"
           >
-            <Download className="h-4 w-4" /> Download
-          </button>
+            <Download className="h-4 w-4" /> Download BS1
+          </Button>
 
-          {/* 4. Export Button (LIGHT GRAY #e2e8f0) */}
-          <button
+          {/* 4. Export Button (THEME GREEN ACCENT OUTLINE) */}
+          <Button
+            variant="outline"
             onClick={() => setShowExportModal(true)}
-            className="bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 active:scale-95 text-zinc-900 dark:text-zinc-100 font-bold px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl flex items-center gap-2 shadow-md transition-all text-xs sm:text-sm"
+            className="border-emerald-600/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 text-xs sm:text-sm"
           >
-            <Share2 className="h-4 w-4" /> Export
-          </button>
+            <Share2 className="h-4 w-4" /> Export Tally / Excel
+          </Button>
         </div>
       </div>
 
