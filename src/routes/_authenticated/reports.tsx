@@ -1917,7 +1917,7 @@ function ReportsActionDock({
       return;
     }
 
-    const toastId = toast.loading(`Dispatching ${tabTitle} to ${emailTo} from noreply@gstmunshi.com...`);
+    const toastId = toast.loading(`Dispatching ${tabTitle} to ${emailTo} from info@gstmunshi.com...`);
 
     try {
       // Dynamic Subject format requested by user: 'Ledger From [Company/Party Name] [Date Range]'
@@ -1935,7 +1935,7 @@ function ReportsActionDock({
         },
       });
 
-      toast.success(`Email report dispatched directly from server to ${emailTo}!`, { id: toastId });
+      toast.success(`Email report dispatched directly from info@gstmunshi.com to ${emailTo}!`, { id: toastId });
     } catch (err: any) {
       console.error("Server email send error:", err);
       toast.error("Failed to send server email. Please check SMTP configuration.", { id: toastId });

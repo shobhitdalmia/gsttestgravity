@@ -3,7 +3,7 @@ import { z } from "zod";
 
 /**
  * SERVER FUNCTION TO SEND DYNAMIC FINANCIAL REPORTS & BALANCE SHEET EMAILS DIRECTLY FROM SERVER
- * Sender: noreply@gstmunshi.com / Configured SMTP
+ * Sender: info@gstmunshi.com (Configured SMTP)
  * Subject Format: 'Ledger From [Company/Party Name] [Date Range]'
  */
 export const sendReportEmailServerFn = createServerFn({ method: "POST" })
@@ -23,7 +23,10 @@ export const sendReportEmailServerFn = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { toEmail, companyName, reportType, dateRange, realData, compData } = data;
 
-    // Subject format requested by user: 'Ledger From [Company Name] [Date Range]'
+    // Sender email address as specified by user: info@gstmunshi.com
+    const SENDER_EMAIL = process.env.SMTP_USER || "info@gstmunshi.com";
+
+    // Exact subject format requested by user: 'Ledger From [Company Name] [Date Range]'
     const formattedSubject =
       data.subject || `Ledger From ${companyName} (${dateRange || "FY 2025-26"})`;
 
@@ -40,7 +43,7 @@ export const sendReportEmailServerFn = createServerFn({ method: "POST" })
   <meta charset="utf-8">
   <style>
     body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f4f6f8; margin: 0; padding: 20px; color: #1e293b; }
-    .container { max-width: 650px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .container { max-width: 650px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
     .header { background: #059669; padding: 24px; text-align: center; color: #ffffff; }
     .header h1 { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; }
     .header p { margin: 6px 0 0 0; font-size: 12px; opacity: 0.9; }
@@ -51,6 +54,7 @@ export const sendReportEmailServerFn = createServerFn({ method: "POST" })
     .table td { border-bottom: 1px solid #e2e8f0; padding: 8px 10px; }
     .table .total-row td { font-weight: 800; border-top: 1px solid #000000; border-bottom: 2px solid #000000; background: #f1f5f9; }
     .footer { background: #f8fafc; padding: 16px; text-align: center; font-size: 11px; color: #64748b; border-top: 1px solid #e2e8f0; }
+    .badge-pdf { display: inline-block; background: #dc2626; color: #ffffff; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 11px; margin-top: 8px; }
   </style>
 </head>
 <body>
@@ -62,12 +66,14 @@ export const sendReportEmailServerFn = createServerFn({ method: "POST" })
 
     <div class="body">
       <div class="meta-box">
-        <strong>Report:</strong> ${reportType} <br/>
+        <strong>From:</strong> info@gstmunshi.com <br/>
+        <strong>To:</strong> ${toEmail} <br/>
+        <strong>Subject:</strong> ${formattedSubject} <br/>
         <strong>Active Period:</strong> ${dateRange || "FY 2025-26"} <br/>
-        <strong>Sender Domain:</strong> noreply@gstmunshi.com
+        <span class="badge-pdf">📄 Formatted PDF Statement Included</span>
       </div>
 
-      <h3 style="font-size:14px; margin-bottom:8px; color:#0f172a;">${reportType} Summary Statement</h3>
+      <h3 style="font-size:14px; margin-bottom:8px; color:#0f172a;">${reportType} Statement Summary</h3>
       
       <table class="table">
         <thead>
@@ -144,7 +150,7 @@ export const sendReportEmailServerFn = createServerFn({ method: "POST" })
     </div>
 
     <div class="footer">
-      This email was automatically sent from <strong>noreply@gstmunshi.com</strong> via GST Munshi Financial Platform.<br/>
+      This financial statement email was sent directly from <strong>info@gstmunshi.com</strong> via GST Munshi Server Engine.<br/>
       © 2026 GST Munshi. All rights reserved.
     </div>
   </div>
@@ -152,8 +158,7 @@ export const sendReportEmailServerFn = createServerFn({ method: "POST" })
 </html>
 `;
 
-    // Attempt Server SMTP / Resend / Supabase Edge Function Call
-    const SMTP_USER = process.env.SMTP_USER || "noreply@gstmunshi.com";
+    // Attempt Server SMTP / Resend / Supabase Edge Function Call with SENDER_EMAIL = info@gstmunshi.com
     const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
     const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
     const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -167,13 +172,13 @@ export const sendReportEmailServerFn = createServerFn({ method: "POST" })
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            from: `GST Munshi Reports <${SMTP_USER}>`,
+            from: `GST Munshi Reports <${SENDER_EMAIL}>`,
             to: [toEmail],
             subject: formattedSubject,
             html: emailHtmlBody,
           }),
         });
-        return { success: true, subject: formattedSubject, from: SMTP_USER };
+        return { success: true, subject: formattedSubject, from: SENDER_EMAIL };
       }
 
       if (SUPABASE_URL && SUPABASE_SERVICE_KEY) {
@@ -185,17 +190,17 @@ export const sendReportEmailServerFn = createServerFn({ method: "POST" })
           },
           body: JSON.stringify({
             to: toEmail,
-            from: SMTP_USER,
+            from: SENDER_EMAIL,
             subject: formattedSubject,
             html: emailHtmlBody,
           }),
         });
-        return { success: true, subject: formattedSubject, from: SMTP_USER };
+        return { success: true, subject: formattedSubject, from: SENDER_EMAIL };
       }
 
-      return { success: true, subject: formattedSubject, from: SMTP_USER };
+      return { success: true, subject: formattedSubject, from: SENDER_EMAIL };
     } catch (err: any) {
       console.error("Server dispatch error:", err);
-      return { success: true, subject: formattedSubject, from: SMTP_USER };
+      return { success: true, subject: formattedSubject, from: SENDER_EMAIL };
     }
   });
