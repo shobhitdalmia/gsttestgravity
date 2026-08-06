@@ -1910,7 +1910,7 @@ function ReportsActionDock({
     toast.success(`Tally XML format exported successfully! You can directly import this into Tally Prime via Import Data.`);
   };
 
-  // HANDLE EMAIL DISPATCH (DIRECT FROM SERVER VIA SUPABASE SMTP ENGINE INFO@GSTMUNSHI.COM)
+  // HANDLE EMAIL DISPATCH (DIRECT RESEND API — NO SUPABASE OTP / MAGIC LINK)
   const handleSendEmail = async () => {
     if (!emailTo || !emailTo.includes("@")) {
       toast.error("Please enter a valid email address");
@@ -1920,11 +1920,9 @@ function ReportsActionDock({
     const toastId = toast.loading(`Dispatching ${tabTitle} from info@gstmunshi.com to ${emailTo}...`);
 
     try {
-      // Dynamic Subject format requested by user: 'Ledger From [Company/Party Name] [Date Range]'
       const customSubject = `Ledger From ${companyName} (${periodLabel || "FY 2025-26"})`;
 
-      // 1. Call server function
-      await sendReportEmailServerFn({
+      const result = await sendReportEmailServerFn({
         data: {
           toEmail: emailTo,
           companyName,
@@ -1936,23 +1934,14 @@ function ReportsActionDock({
         },
       });
 
-      // 2. Trigger Supabase SMTP engine (the exact one configured with info@gstmunshi.com that sends signup emails)
-      await supabase.auth.signInWithOtp({
-        email: emailTo,
-        options: {
-          data: {
-            custom_subject: customSubject,
-            company_name: companyName,
-            report_title: tabTitle,
-            sender_email: "info@gstmunshi.com",
-          },
-        },
-      });
-
-      toast.success(`Email report sent from info@gstmunshi.com to ${emailTo}!`, { id: toastId });
+      if (result?.success) {
+        toast.success(`Balance Sheet email sent from info@gstmunshi.com to ${emailTo}!`, { id: toastId });
+      } else {
+        throw new Error("Email dispatch returned unsuccessful");
+      }
     } catch (err: any) {
-      console.error("Server email send error:", err);
-      toast.success(`Email report sent from info@gstmunshi.com to ${emailTo}!`, { id: toastId });
+      console.error("Email send error:", err);
+      toast.error(`Could not send email. Please ensure SMTP credentials (RESEND_API_KEY or SMTP_PASS) are configured in Vercel environment variables.`, { id: toastId });
     }
 
     setShowEmailModal(false);
