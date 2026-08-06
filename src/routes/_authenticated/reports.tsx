@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentCompany } from "@/lib/company";
@@ -12,15 +12,7 @@ import { useFinancialYear, currentFYStartYear, fyLabel, fyRange, FYValue } from 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { useLedgerGroups, useLedgers, useVoucherLines, buildBalances } from "@/lib/accounting";
 import {
   ResponsiveContainer,
   LineChart,
@@ -48,10 +40,9 @@ import {
   RefreshCw,
   Calendar,
   Filter,
-  Pencil,
-  Save,
-  RotateCcw,
-  Info,
+  ExternalLink,
+  BookOpen,
+  Receipt,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/reports")({
@@ -65,24 +56,6 @@ export const Route = createFileRoute("/_authenticated/reports")({
 type Granularity = "yearly" | "ytd" | "quarterly" | "monthly" | "custom";
 type Quarter = "q1" | "q2" | "q3" | "q4";
 type MonthNum = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
-
-interface BalanceSheetSchedules {
-  propertyPlantEquip: number;
-  intangibleAssets: number;
-  investments: number;
-  longTermLoans: number;
-  shareCapital: number;
-  nonCurrentLiabilities: number;
-}
-
-const DEFAULT_SCHEDULES: BalanceSheetSchedules = {
-  propertyPlantEquip: 0,
-  intangibleAssets: 0,
-  investments: 0,
-  longTermLoans: 0,
-  shareCapital: 0,
-  nonCurrentLiabilities: 0,
-};
 
 function ReportsPage() {
   const navigate = useNavigate();
@@ -123,7 +96,7 @@ function ReportsPage() {
 
         {/* Balance Sheet Tab */}
         <TabsContent value="balance-sheet" className="mt-6 space-y-6">
-          <BalanceSheetDashboard companyId={companyId} companyName={companyName} fy={fy} setFY={setFY} />
+          <BalanceSheetDashboard companyId={companyId} companyName={companyName} fy={fy} setFY={setFY} navigate={navigate} />
         </TabsContent>
 
         {/* Profit & Loss Tab */}
@@ -150,52 +123,21 @@ function ReportsPage() {
   );
 }
 
-{/* REAL DATA BALANCE SHEET DASHBOARD */}
+{/* 100% LEDGER-DRIVEN BALANCE SHEET DASHBOARD */}
 function BalanceSheetDashboard({
   companyId,
   companyName,
   fy,
   setFY,
+  navigate,
 }: {
   companyId?: string;
   companyName: string;
   fy: FYValue;
   setFY: (val: FYValue) => void;
+  navigate: any;
 }) {
   const currentYear = currentFYStartYear();
-
-  // Load User Custom Balance Sheet Schedule Inputs (Per Company)
-  const storageKey = `gstmunshi_bs_schedules_${companyId || "default"}`;
-  const [bsSchedules, setBsSchedules] = useState<BalanceSheetSchedules>(() => {
-    if (typeof window === "undefined") return DEFAULT_SCHEDULES;
-    try {
-      const saved = localStorage.getItem(storageKey);
-      return saved ? JSON.parse(saved) : DEFAULT_SCHEDULES;
-    } catch {
-      return DEFAULT_SCHEDULES;
-    }
-  });
-
-  useEffect(() => {
-    if (!companyId) return;
-    try {
-      const saved = localStorage.getItem(`gstmunshi_bs_schedules_${companyId}`);
-      if (saved) {
-        setBsSchedules(JSON.parse(saved));
-      } else {
-        setBsSchedules(DEFAULT_SCHEDULES);
-      }
-    } catch {
-      setBsSchedules(DEFAULT_SCHEDULES);
-    }
-  }, [companyId]);
-
-  const saveSchedules = (updated: BalanceSheetSchedules) => {
-    setBsSchedules(updated);
-    if (companyId) {
-      localStorage.setItem(`gstmunshi_bs_schedules_${companyId}`, JSON.stringify(updated));
-    }
-  };
 
   // Time Switcher States
   const [granularity, setGranularity] = useState<Granularity>("yearly");
@@ -274,6 +216,11 @@ function BalanceSheetDashboard({
     };
   }, [fy, compareMode, currentYear]);
 
+  // REAL LEDGERS & VOUCHER POSTINGS QUERIES
+  const { data: ledgerGroups } = useLedgerGroups(companyId);
+  const { data: ledgers } = useLedgers(companyId);
+  const { data: voucherLines } = useVoucherLines(companyId, fromDate, toDate);
+
   // REAL DATA QUERY 1: Invoices (Sales)
   const invoices = useQuery({
     enabled: !!companyId,
@@ -347,50 +294,59 @@ function BalanceSheetDashboard({
     },
   });
 
-  // COMPARISON REAL QUERIES
-  const compInvoices = useQuery({
-    enabled: !!companyId && compareMode !== "none",
-    queryKey: ["bs-comp-invoices", companyId, compFromDate, compToDate],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("invoices")
-        .select("total, subtotal, amount_paid")
-        .eq("company_id", companyId!)
-        .gte("invoice_date", compFromDate)
-        .lte("invoice_date", compToDate);
-      return data ?? [];
-    },
-  });
+  // Calculate LEDGER CLOSING BALANCES from voucher lines + opening balances
+  const ledgerBalancesMap = useMemo(() => {
+    if (!ledgers) return new Map();
+    return buildBalances(ledgers, voucherLines ?? []);
+  }, [ledgers, voucherLines]);
 
-  const compPurchases = useQuery({
-    enabled: !!companyId && compareMode !== "none",
-    queryKey: ["bs-comp-purchases", companyId, compFromDate, compToDate],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("purchases")
-        .select("total, subtotal, amount_paid")
-        .eq("company_id", companyId!)
-        .gte("bill_date", compFromDate)
-        .lte("bill_date", compToDate);
-      return data ?? [];
-    },
-  });
+  // AGGREGATE REAL BALANCE SHEET SCHEDULES FROM ACCOUNTING LEDGERS & TRANSACTIONS
+  const scheduleValuesFromLedgers = useMemo(() => {
+    let ppe = 0; // Property, Plant & Equipment
+    let intangible = 0;
+    let investments = 0;
+    let longTermLoans = 0;
+    let shareCapital = 0;
+    let longTermBorrowings = 0;
 
-  const compExpenses = useQuery({
-    enabled: !!companyId && compareMode !== "none",
-    queryKey: ["bs-comp-expenses", companyId, compFromDate, compToDate],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("expenses")
-        .select("amount")
-        .eq("company_id", companyId!)
-        .gte("expense_date", compFromDate)
-        .lte("expense_date", compToDate);
-      return data ?? [];
-    },
-  });
+    if (ledgers && ledgerGroups) {
+      const groupMap = new Map(ledgerGroups.map((g) => [g.id, g]));
 
-  // 100% REAL COMPUTATIONS FOR ACTIVE PERIOD (ZERO DUMMY DATA!)
+      for (const l of ledgers) {
+        const balObj = ledgerBalancesMap.get(l.id);
+        const bal = balObj ? balObj.closing : (l.opening_type === "credit" ? -l.opening_balance : l.opening_balance);
+        const grp = groupMap.get(l.group_id);
+        const code = (grp?.code || l.code || "").toLowerCase();
+        const name = l.name.toLowerCase();
+
+        // Categorize into Balance Sheet Schedules
+        if (code.includes("fixed_asset") || name.includes("property") || name.includes("plant") || name.includes("machinery") || name.includes("building") || name.includes("furniture") || name.includes("vehicle") || name.includes("asset")) {
+          ppe += Math.max(0, bal);
+        } else if (code.includes("intangible") || name.includes("patent") || name.includes("software") || name.includes("trademark")) {
+          intangible += Math.max(0, bal);
+        } else if (code.includes("investment") || name.includes("investment") || name.includes("fixed deposit") || name.includes("fd") || name.includes("share")) {
+          investments += Math.max(0, bal);
+        } else if (code.includes("loans_advances") || name.includes("long term loan")) {
+          longTermLoans += Math.max(0, bal);
+        } else if (code.includes("capital") || name.includes("capital") || name.includes("equity") || name.includes("share capital")) {
+          shareCapital += Math.abs(bal);
+        } else if (code.includes("borrowing") || code.includes("secured_loan") || code.includes("unsecured_loan") || name.includes("bank loan") || name.includes("term loan") || name.includes("loan")) {
+          longTermBorrowings += Math.abs(bal);
+        }
+      }
+    }
+
+    return {
+      propertyPlantEquip: ppe,
+      intangibleAssets: intangible,
+      investments: investments,
+      longTermLoans: longTermLoans,
+      shareCapital: shareCapital,
+      nonCurrentLiabilities: longTermBorrowings,
+    };
+  }, [ledgers, ledgerGroups, ledgerBalancesMap]);
+
+  // 100% REAL COMPUTATIONS FOR ACTIVE PERIOD (DRIVEN BY LEDGERS & TRANSACTIONS)
   const realData = useMemo(() => {
     const invList = invoices.data ?? [];
     const purchList = purchases.data ?? [];
@@ -429,11 +385,11 @@ function BalanceSheetDashboard({
     // Current Assets
     const currentAssets = tradeReceivables + inventories + cashBankBalance;
 
-    // Real Non-Current Assets (STRICTLY FROM USER INPUTS - ZERO DUMMY FALLBACK!)
-    const propertyPlantEquip = Number(bsSchedules.propertyPlantEquip || 0);
-    const intangibleAssets = Number(bsSchedules.intangibleAssets || 0);
-    const investments = Number(bsSchedules.investments || 0);
-    const longTermLoans = Number(bsSchedules.longTermLoans || 0);
+    // Real Non-Current Assets (DETERMINED BY USER'S REAL LEDGER POSTINGS)
+    const propertyPlantEquip = scheduleValuesFromLedgers.propertyPlantEquip;
+    const intangibleAssets = scheduleValuesFromLedgers.intangibleAssets;
+    const investments = scheduleValuesFromLedgers.investments;
+    const longTermLoans = scheduleValuesFromLedgers.longTermLoans;
     const nonCurrentAssets = propertyPlantEquip + intangibleAssets + investments + longTermLoans;
 
     const totalAssets = nonCurrentAssets + currentAssets;
@@ -441,8 +397,8 @@ function BalanceSheetDashboard({
     // Liabilities & Equity
     const netGstPayable = Math.max(0, outputGst - inputGst);
     const currentLiabilities = tradePayables + netGstPayable;
-    const nonCurrentLiabilities = Number(bsSchedules.nonCurrentLiabilities || 0);
-    const shareCapital = Number(bsSchedules.shareCapital || 0);
+    const nonCurrentLiabilities = scheduleValuesFromLedgers.nonCurrentLiabilities;
+    const shareCapital = scheduleValuesFromLedgers.shareCapital;
 
     const netProfit = taxableSales - taxablePurchases - totalExpenses;
     // Total Equity balances Assets equation
@@ -491,36 +447,32 @@ function BalanceSheetDashboard({
       inventoryTurnover,
       receivablesTurnover,
     };
-  }, [invoices.data, purchases.data, expenses.data, products.data, payments.data, bsSchedules]);
+  }, [invoices.data, purchases.data, expenses.data, products.data, payments.data, scheduleValuesFromLedgers]);
 
   // REAL COMPUTATIONS FOR COMPARISON PERIOD
   const compData = useMemo(() => {
     if (compareMode === "none") return null;
     const invList = compInvoices.data ?? [];
     const purchList = compPurchases.data ?? [];
-    const expList = compExpenses.data ?? [];
 
     const totalSales = invList.reduce((acc, i) => acc + Number(i.total || 0), 0);
     const totalPurchases = purchList.reduce((acc, p) => acc + Number(p.total || 0), 0);
-    const totalExpenses = expList.reduce((acc, e) => acc + Number(e.amount || 0), 0);
     const salesPaid = invList.reduce((acc, i) => acc + Number(i.amount_paid || 0), 0);
     const purchasesPaid = purchList.reduce((acc, p) => acc + Number(p.amount_paid || 0), 0);
 
     const tradeReceivables = Math.max(0, totalSales - salesPaid);
     const tradePayables = Math.max(0, totalPurchases - purchasesPaid);
     const currentAssets = tradeReceivables;
-    const totalAssets = currentAssets;
 
     return {
       totalSales,
       totalPurchases,
-      totalExpenses,
       tradeReceivables,
       tradePayables,
       currentAssets,
-      totalAssets,
+      totalAssets: currentAssets,
     };
-  }, [compInvoices.data, compPurchases.data, compExpenses.data, compareMode]);
+  }, [compInvoices.data, compPurchases.data, compareMode]);
 
   // Percentage change helper
   const pctDiff = (curr: number, prev?: number) => {
@@ -555,20 +507,20 @@ function BalanceSheetDashboard({
   const assetComp = useMemo(() => {
     const total = realData.totalAssets || 1;
     return [
-      { name: "Fixed Assets", value: Number(((realData.propertyPlantEquip / total) * 100).toFixed(1)), color: "#3b82f6" },
-      { name: "Current Assets", value: Number(((realData.currentAssets / total) * 100).toFixed(1)), color: "#10b981" },
-      { name: "Investments", value: Number(((realData.investments / total) * 100).toFixed(1)), color: "#f59e0b" },
-      { name: "Other Assets", value: Number((((realData.intangibleAssets + realData.longTermLoans) / total) * 100).toFixed(1)), color: "#8b5cf6" },
+      { name: "Fixed Assets", value: Number(((realData.propertyPlantEquip / total) * 100).toFixed(1)), color: "#10b981" },
+      { name: "Current Assets", value: Number(((realData.currentAssets / total) * 100).toFixed(1)), color: "#059669" },
+      { name: "Investments", value: Number(((realData.investments / total) * 100).toFixed(1)), color: "#34d399" },
+      { name: "Other Assets", value: Number((((realData.intangibleAssets + realData.longTermLoans) / total) * 100).toFixed(1)), color: "#6ee7b7" },
     ];
   }, [realData]);
 
   const liabilityComp = useMemo(() => {
     const total = realData.totalLiabilitiesAndEquity || 1;
     return [
-      { name: "Equity", value: Number(((realData.totalEquity / total) * 100).toFixed(1)), color: "#2563eb" },
-      { name: "Borrowings", value: Number(((realData.nonCurrentLiabilities / total) * 100).toFixed(1)), color: "#10b981" },
-      { name: "Trade Payables", value: Number(((realData.tradePayables / total) * 100).toFixed(1)), color: "#f97316" },
-      { name: "Other Liabilities", value: Number(((realData.netGstPayable / total) * 100).toFixed(1)), color: "#8b5cf6" },
+      { name: "Equity", value: Number(((realData.totalEquity / total) * 100).toFixed(1)), color: "#f43f5e" },
+      { name: "Borrowings", value: Number(((realData.nonCurrentLiabilities / total) * 100).toFixed(1)), color: "#e11d48" },
+      { name: "Trade Payables", value: Number(((realData.tradePayables / total) * 100).toFixed(1)), color: "#fb7185" },
+      { name: "Other Liabilities", value: Number(((realData.netGstPayable / total) * 100).toFixed(1)), color: "#fda4af" },
     ];
   }, [realData]);
 
@@ -581,13 +533,18 @@ function BalanceSheetDashboard({
             Balance Sheet
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground">
-            Financial position, assets, liabilities, and equity based 100% on real business records &amp; user schedule inputs.
+            Financial position, assets, liabilities, and equity based 100% on real business ledger postings.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Edit Schedules Button */}
-          <BalanceSheetEditDialog initialValues={bsSchedules} onSave={saveSchedules} />
+          <Button
+            onClick={() => navigate({ to: "/accounting/ledgers" })}
+            size="sm"
+            className="gap-2 font-bold text-xs bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+          >
+            <BookOpen className="h-4 w-4" /> Manage Ledger Postings
+          </Button>
 
           <Badge className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 px-3 py-1.5 text-xs font-bold">
             {companyName}
@@ -712,19 +669,19 @@ function BalanceSheetDashboard({
         </div>
       </div>
 
-      {/* 5 TOP REAL KPI CARDS */}
+      {/* 5 TOP REAL KPI CARDS WITH COLOR CODING */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        {/* Card 1: Total Assets */}
-        <div className="rounded-xl border border-border bg-card p-4 shadow-xs">
+        {/* Card 1: Total Assets (GREEN) */}
+        <div className="rounded-xl border border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/20 p-4 shadow-xs">
           <div className="flex items-center justify-between">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600">
-              <Building2 className="h-5 w-5" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-600 font-bold">
+              🟢
             </div>
-            <span className="text-[10px] font-semibold text-muted-foreground">{compLabel}</span>
+            <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400">{compLabel}</span>
           </div>
           <div className="mt-3">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total Assets</p>
-            <h3 className="font-display text-2xl font-extrabold text-foreground mt-0.5">{formatINR(realData.totalAssets)}</h3>
+            <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">Total Assets (संपत्ति)</p>
+            <h3 className="font-display text-2xl font-extrabold text-emerald-700 dark:text-emerald-300 mt-0.5">{formatINR(realData.totalAssets)}</h3>
           </div>
           <div className="mt-2 flex items-center gap-1 text-xs font-medium text-emerald-600">
             <ArrowUpRight className="h-3.5 w-3.5" />
@@ -732,53 +689,53 @@ function BalanceSheetDashboard({
           </div>
         </div>
 
-        {/* Card 2: Total Liabilities */}
-        <div className="rounded-xl border border-border bg-card p-4 shadow-xs">
+        {/* Card 2: Total Liabilities (SOFT RED) */}
+        <div className="rounded-xl border border-rose-500/30 bg-rose-50/50 dark:bg-rose-950/20 p-4 shadow-xs">
           <div className="flex items-center justify-between">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-600">
-              <Landmark className="h-5 w-5" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-500/20 text-rose-600 font-bold">
+              🔴
             </div>
-            <span className="text-[10px] font-semibold text-muted-foreground">{compLabel}</span>
+            <span className="text-[10px] font-semibold text-rose-700 dark:text-rose-400">{compLabel}</span>
           </div>
           <div className="mt-3">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total Liabilities</p>
-            <h3 className="font-display text-2xl font-extrabold text-foreground mt-0.5">{formatINR(realData.currentLiabilities + realData.nonCurrentLiabilities)}</h3>
+            <p className="text-xs font-bold text-rose-700 dark:text-rose-400 uppercase tracking-wider">Total Liabilities (देनदारी)</p>
+            <h3 className="font-display text-2xl font-extrabold text-rose-700 dark:text-rose-300 mt-0.5">{formatINR(realData.currentLiabilities + realData.nonCurrentLiabilities)}</h3>
           </div>
-          <div className="mt-2 flex items-center gap-1 text-xs font-medium text-emerald-600">
+          <div className="mt-2 flex items-center gap-1 text-xs font-medium text-rose-600">
             <ArrowUpRight className="h-3.5 w-3.5" />
             <span>{pctDiff(realData.currentLiabilities + realData.nonCurrentLiabilities, compData?.tradePayables)}</span>
           </div>
         </div>
 
-        {/* Card 3: Net Worth */}
-        <div className="rounded-xl border border-border bg-card p-4 shadow-xs">
+        {/* Card 3: Net Worth (GREEN) */}
+        <div className="rounded-xl border border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/20 p-4 shadow-xs">
           <div className="flex items-center justify-between">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-pink-500/10 text-pink-600">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-600">
               <Sparkles className="h-5 w-5" />
             </div>
-            <span className="text-[10px] font-semibold text-muted-foreground">{compLabel}</span>
+            <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400">{compLabel}</span>
           </div>
           <div className="mt-3">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Net Worth</p>
-            <h3 className="font-display text-2xl font-extrabold text-foreground mt-0.5">{formatINR(realData.totalEquity)}</h3>
+            <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">Net Worth (खुद का पैसा)</p>
+            <h3 className="font-display text-2xl font-extrabold text-emerald-700 dark:text-emerald-300 mt-0.5">{formatINR(realData.totalEquity)}</h3>
           </div>
           <div className="mt-2 flex items-center gap-1 text-xs font-medium text-emerald-600">
             <ArrowUpRight className="h-3.5 w-3.5" />
-            <span>{pctDiff(realData.totalEquity, (compData?.totalAssets || 0) * 0.6)}</span>
+            <span>Net Equity</span>
           </div>
         </div>
 
-        {/* Card 4: Cash & Bank Balance */}
-        <div className="rounded-xl border border-border bg-card p-4 shadow-xs">
+        {/* Card 4: Cash & Bank Balance (GREEN) */}
+        <div className="rounded-xl border border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/20 p-4 shadow-xs">
           <div className="flex items-center justify-between">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-600">
               <Coins className="h-5 w-5" />
             </div>
-            <span className="text-[10px] font-semibold text-muted-foreground">{compLabel}</span>
+            <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400">{compLabel}</span>
           </div>
           <div className="mt-3">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Cash &amp; Bank Balance</p>
-            <h3 className="font-display text-2xl font-extrabold text-foreground mt-0.5">{formatINR(realData.cashBankBalance)}</h3>
+            <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">Cash &amp; Bank (रोकड़)</p>
+            <h3 className="font-display text-2xl font-extrabold text-emerald-700 dark:text-emerald-300 mt-0.5">{formatINR(realData.cashBankBalance)}</h3>
           </div>
           <div className="mt-2 flex items-center gap-1 text-xs font-medium text-emerald-600">
             <ArrowUpRight className="h-3.5 w-3.5" />
@@ -816,14 +773,14 @@ function BalanceSheetDashboard({
                 <XAxis dataKey="year" stroke="#888888" fontSize={10} tickLine={false} axisLine={false} />
                 <YAxis stroke="#888888" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `${v} L`} />
                 <Tooltip formatter={(value: any) => [`₹${value} Lakh`, ""]} />
-                <Line type="monotone" dataKey="assets" stroke="#3b82f6" strokeWidth={2.5} dot={{ r: 3 }} name="Total Assets" />
-                <Line type="monotone" dataKey="liabilities" stroke="#10b981" strokeWidth={2.5} dot={{ r: 3 }} name="Total Liabilities" />
+                <Line type="monotone" dataKey="assets" stroke="#10b981" strokeWidth={2.5} dot={{ r: 3 }} name="🟢 Assets (संपत्ति)" />
+                <Line type="monotone" dataKey="liabilities" stroke="#f43f5e" strokeWidth={2.5} dot={{ r: 3 }} name="🔴 Liabilities (देनदारी)" />
               </LineChart>
             </ResponsiveContainer>
           </div>
           <div className="flex items-center justify-center gap-4 text-xs font-medium mt-2">
-            <span className="flex items-center gap-1.5 text-blue-600"><span className="h-2.5 w-2.5 rounded-full bg-blue-500" /> Total Assets</span>
-            <span className="flex items-center gap-1.5 text-emerald-600"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> Total Liabilities</span>
+            <span className="flex items-center gap-1.5 text-emerald-600 font-bold"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> 🟢 Assets</span>
+            <span className="flex items-center gap-1.5 text-rose-600 font-bold"><span className="h-2.5 w-2.5 rounded-full bg-rose-500" /> 🔴 Liabilities</span>
           </div>
         </div>
 
@@ -838,22 +795,22 @@ function BalanceSheetDashboard({
               <AreaChart data={netWorthData}>
                 <defs>
                   <linearGradient id="netWorthGradReal" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.0} />
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
                   </linearGradient>
                 </defs>
                 <XAxis dataKey="year" stroke="#888888" fontSize={10} tickLine={false} axisLine={false} />
                 <YAxis stroke="#888888" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `${v} L`} />
                 <Tooltip formatter={(value: any) => [`₹${value} Lakh`, "Net Worth"]} />
-                <Area type="monotone" dataKey="netWorth" stroke="#8b5cf6" strokeWidth={2.5} fillOpacity={1} fill="url(#netWorthGradReal)" dot={{ r: 3 }} />
+                <Area type="monotone" dataKey="netWorth" stroke="#10b981" strokeWidth={2.5} fillOpacity={1} fill="url(#netWorthGradReal)" dot={{ r: 3 }} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Chart 3: Asset Composition Donut */}
+        {/* Chart 3: Asset Composition Donut (GREEN PALETTE) */}
         <div className="rounded-xl border border-border bg-card p-4 shadow-xs">
-          <h4 className="font-display text-sm font-bold text-foreground">Asset Composition</h4>
+          <h4 className="font-display text-sm font-bold text-emerald-600 dark:text-emerald-400">🟢 Asset Composition</h4>
           <div className="flex items-center gap-2 h-44 mt-1">
             <div className="h-full w-1/2">
               <ResponsiveContainer width="100%" height="100%">
@@ -881,9 +838,9 @@ function BalanceSheetDashboard({
           </div>
         </div>
 
-        {/* Chart 4: Liability Composition Donut */}
+        {/* Chart 4: Liability Composition Donut (RED PALETTE) */}
         <div className="rounded-xl border border-border bg-card p-4 shadow-xs">
-          <h4 className="font-display text-sm font-bold text-foreground">Liability Composition</h4>
+          <h4 className="font-display text-sm font-bold text-rose-600 dark:text-rose-400">🔴 Liability Composition</h4>
           <div className="flex items-center gap-2 h-44 mt-1">
             <div className="h-full w-1/2">
               <ResponsiveContainer width="100%" height="100%">
@@ -912,300 +869,309 @@ function BalanceSheetDashboard({
         </div>
       </div>
 
-      {/* 3 COLUMN DETAILED SCHEDULE TABLES & ANALYTICS GRID */}
+      {/* 2 COLUMN DETAILED SCHEDULE TABLES WITH COLOR CODING & LEDGER LINKS */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Column 1: ASSETS Schedule */}
-        <div className="lg:col-span-5 rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-xs space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-display text-base font-bold text-blue-600 uppercase tracking-wider">
-              ASSETS
-            </h3>
-            <span className="text-[11px] font-semibold text-muted-foreground">Schedule 1 to 9</span>
+        {/* Column 1: ASSETS Schedule (GREEN TINT) */}
+        <div className="lg:col-span-6 rounded-2xl border border-emerald-500/30 bg-card p-4 sm:p-5 shadow-xs space-y-4">
+          <div className="flex items-center justify-between p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+            <div>
+              <h3 className="font-display text-base font-extrabold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-2">
+                <span>🟢</span> ASSETS (संपत्ति - आपकी संपत्ति)
+              </h3>
+              <p className="text-[11px] text-emerald-600/90 font-medium">
+                यह आपका पैसा, स्टॉक, और खरीदी गई प्रॉपर्टी है।
+              </p>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => navigate({ to: "/accounting/ledgers" })}
+              className="text-xs font-bold border-emerald-500/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10"
+            >
+              + Ledger Entry <ExternalLink className="ml-1 h-3 w-3" />
+            </Button>
           </div>
+
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="border-b border-border/80">
-                  <TableHead className="text-xs font-bold text-foreground">Particulars</TableHead>
+                <TableRow className="border-b border-emerald-500/20 bg-emerald-50/40 dark:bg-emerald-950/20">
+                  <TableHead className="text-xs font-bold text-emerald-800 dark:text-emerald-300">Particulars (खाता)</TableHead>
                   <TableHead className="text-xs font-bold text-center w-12">Note</TableHead>
-                  <TableHead className="text-xs font-bold text-right">{periodLabel}</TableHead>
-                  <TableHead className="text-xs font-bold text-right">{compLabel}</TableHead>
+                  <TableHead className="text-xs font-bold text-right text-emerald-800 dark:text-emerald-300">{periodLabel}</TableHead>
+                  <TableHead className="text-xs font-bold text-center w-24">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody className="text-xs">
                 {/* Non-Current Assets */}
-                <TableRow className="bg-muted/20">
-                  <TableCell colSpan={4} className="font-bold text-foreground py-2">
-                    Non-Current Assets
+                <TableRow className="bg-emerald-100/30 dark:bg-emerald-900/20">
+                  <TableCell colSpan={4} className="font-extrabold text-emerald-800 dark:text-emerald-300 py-2">
+                    Non-Current Assets (स्थाई संपत्ति)
                   </TableCell>
                 </TableRow>
-                <TableRow>
-                  <TableCell className="pl-4 font-medium">Property, Plant &amp; Equipment</TableCell>
+
+                <TableRow className="hover:bg-emerald-50/30">
+                  <TableCell className="pl-4 font-semibold text-foreground">
+                    Property, Plant &amp; Equipment (जमीन, दुकान, मशीनरी)
+                  </TableCell>
                   <TableCell className="text-center font-mono text-[11px] text-muted-foreground">1</TableCell>
-                  <TableCell className="text-right font-bold text-foreground">{formatINR(realData.propertyPlantEquip)}</TableCell>
-                  <TableCell className="text-right text-muted-foreground">{formatINR(realData.propertyPlantEquip)}</TableCell>
+                  <TableCell className="text-right font-bold text-emerald-700 dark:text-emerald-400">{formatINR(realData.propertyPlantEquip)}</TableCell>
+                  <TableCell className="text-center">
+                    <Link to="/accounting/ledgers" className="text-[11px] font-bold text-emerald-600 hover:underline inline-flex items-center gap-1">
+                      Post <ExternalLink className="h-3 w-3" />
+                    </Link>
+                  </TableCell>
                 </TableRow>
-                <TableRow>
-                  <TableCell className="pl-4 font-medium">Intangible Assets</TableCell>
+
+                <TableRow className="hover:bg-emerald-50/30">
+                  <TableCell className="pl-4 font-semibold text-foreground">
+                    Intangible Assets (सॉफ्टवेयर, पेटेंट)
+                  </TableCell>
                   <TableCell className="text-center font-mono text-[11px] text-muted-foreground">2</TableCell>
-                  <TableCell className="text-right font-bold text-foreground">{formatINR(realData.intangibleAssets)}</TableCell>
-                  <TableCell className="text-right text-muted-foreground">{formatINR(realData.intangibleAssets)}</TableCell>
+                  <TableCell className="text-right font-bold text-emerald-700 dark:text-emerald-400">{formatINR(realData.intangibleAssets)}</TableCell>
+                  <TableCell className="text-center">
+                    <Link to="/accounting/ledgers" className="text-[11px] font-bold text-emerald-600 hover:underline inline-flex items-center gap-1">
+                      Post <ExternalLink className="h-3 w-3" />
+                    </Link>
+                  </TableCell>
                 </TableRow>
-                <TableRow>
-                  <TableCell className="pl-4 font-medium">Investments &amp; Fixed Deposits</TableCell>
+
+                <TableRow className="hover:bg-emerald-50/30">
+                  <TableCell className="pl-4 font-semibold text-foreground">
+                    Investments &amp; FDs (निवेश &amp; एफडी)
+                  </TableCell>
                   <TableCell className="text-center font-mono text-[11px] text-muted-foreground">3</TableCell>
-                  <TableCell className="text-right font-bold text-foreground">{formatINR(realData.investments)}</TableCell>
-                  <TableCell className="text-right text-muted-foreground">{formatINR(realData.investments)}</TableCell>
+                  <TableCell className="text-right font-bold text-emerald-700 dark:text-emerald-400">{formatINR(realData.investments)}</TableCell>
+                  <TableCell className="text-center">
+                    <Link to="/accounting/ledgers" className="text-[11px] font-bold text-emerald-600 hover:underline inline-flex items-center gap-1">
+                      Post <ExternalLink className="h-3 w-3" />
+                    </Link>
+                  </TableCell>
                 </TableRow>
-                <TableRow>
-                  <TableCell className="pl-4 font-medium">Long Term Loans &amp; Advances</TableCell>
+
+                <TableRow className="hover:bg-emerald-50/30">
+                  <TableCell className="pl-4 font-semibold text-foreground">
+                    Long Term Loans &amp; Advances (दिया गया लोन)
+                  </TableCell>
                   <TableCell className="text-center font-mono text-[11px] text-muted-foreground">4</TableCell>
-                  <TableCell className="text-right font-bold text-foreground">{formatINR(realData.longTermLoans)}</TableCell>
-                  <TableCell className="text-right text-muted-foreground">{formatINR(realData.longTermLoans)}</TableCell>
+                  <TableCell className="text-right font-bold text-emerald-700 dark:text-emerald-400">{formatINR(realData.longTermLoans)}</TableCell>
+                  <TableCell className="text-center">
+                    <Link to="/accounting/ledgers" className="text-[11px] font-bold text-emerald-600 hover:underline inline-flex items-center gap-1">
+                      Post <ExternalLink className="h-3 w-3" />
+                    </Link>
+                  </TableCell>
                 </TableRow>
-                <TableRow className="font-bold text-blue-600 bg-blue-50/50 dark:bg-blue-950/20">
+
+                <TableRow className="font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-100/50 dark:bg-emerald-900/30">
                   <TableCell>Total Non-Current Assets</TableCell>
                   <TableCell />
                   <TableCell className="text-right">{formatINR(realData.nonCurrentAssets)}</TableCell>
-                  <TableCell className="text-right">{formatINR(realData.nonCurrentAssets)}</TableCell>
+                  <TableCell />
                 </TableRow>
 
                 {/* Current Assets */}
-                <TableRow className="bg-muted/20">
-                  <TableCell colSpan={4} className="font-bold text-foreground py-2 mt-2">
-                    Current Assets
+                <TableRow className="bg-emerald-100/30 dark:bg-emerald-900/20">
+                  <TableCell colSpan={4} className="font-extrabold text-emerald-800 dark:text-emerald-300 py-2 mt-2">
+                    Current Assets (चालू संपत्ति)
                   </TableCell>
                 </TableRow>
-                <TableRow>
-                  <TableCell className="pl-4 font-semibold text-foreground">Inventories (Stock Valuation)</TableCell>
+
+                <TableRow className="hover:bg-emerald-50/30">
+                  <TableCell className="pl-4 font-semibold text-foreground">Inventories (सामान/स्टॉक की वैल्यू)</TableCell>
                   <TableCell className="text-center font-mono text-[11px] text-muted-foreground">5</TableCell>
-                  <TableCell className="text-right font-bold text-foreground">{formatINR(realData.inventories)}</TableCell>
-                  <TableCell className="text-right text-muted-foreground">{formatINR(realData.inventories)}</TableCell>
+                  <TableCell className="text-right font-bold text-emerald-700 dark:text-emerald-400">{formatINR(realData.inventories)}</TableCell>
+                  <TableCell className="text-center">
+                    <Link to="/products" className="text-[11px] font-bold text-emerald-600 hover:underline inline-flex items-center gap-1">
+                      Stock <ExternalLink className="h-3 w-3" />
+                    </Link>
+                  </TableCell>
                 </TableRow>
-                <TableRow>
-                  <TableCell className="pl-4 font-semibold text-foreground">Trade Receivables (Uncollected Sales)</TableCell>
+
+                <TableRow className="hover:bg-emerald-50/30">
+                  <TableCell className="pl-4 font-semibold text-foreground">Trade Receivables (ग्राहकों की उधारी)</TableCell>
                   <TableCell className="text-center font-mono text-[11px] text-muted-foreground">6</TableCell>
-                  <TableCell className="text-right font-bold text-foreground">{formatINR(realData.tradeReceivables)}</TableCell>
-                  <TableCell className="text-right text-muted-foreground">{formatINR(compData?.tradeReceivables || 0)}</TableCell>
+                  <TableCell className="text-right font-bold text-emerald-700 dark:text-emerald-400">{formatINR(realData.tradeReceivables)}</TableCell>
+                  <TableCell className="text-center">
+                    <Link to="/parties" className="text-[11px] font-bold text-emerald-600 hover:underline inline-flex items-center gap-1">
+                      Parties <ExternalLink className="h-3 w-3" />
+                    </Link>
+                  </TableCell>
                 </TableRow>
-                <TableRow>
-                  <TableCell className="pl-4 font-semibold text-foreground">Cash &amp; Bank Balances</TableCell>
+
+                <TableRow className="hover:bg-emerald-50/30">
+                  <TableCell className="pl-4 font-semibold text-foreground">Cash &amp; Bank Balances (गल्ला &amp; बैंक रोकड़)</TableCell>
                   <TableCell className="text-center font-mono text-[11px] text-muted-foreground">7</TableCell>
-                  <TableCell className="text-right font-bold text-foreground">{formatINR(realData.cashBankBalance)}</TableCell>
-                  <TableCell className="text-right text-muted-foreground">{formatINR(realData.cashBankBalance)}</TableCell>
+                  <TableCell className="text-right font-bold text-emerald-700 dark:text-emerald-400">{formatINR(realData.cashBankBalance)}</TableCell>
+                  <TableCell className="text-center">
+                    <Link to="/payments" className="text-[11px] font-bold text-emerald-600 hover:underline inline-flex items-center gap-1">
+                      Payments <ExternalLink className="h-3 w-3" />
+                    </Link>
+                  </TableCell>
                 </TableRow>
-                <TableRow className="font-bold text-blue-600 bg-blue-50/50 dark:bg-blue-950/20">
+
+                <TableRow className="font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-100/50 dark:bg-emerald-900/30">
                   <TableCell>Total Current Assets</TableCell>
                   <TableCell />
                   <TableCell className="text-right">{formatINR(realData.currentAssets)}</TableCell>
-                  <TableCell className="text-right">{formatINR(compData?.currentAssets || 0)}</TableCell>
+                  <TableCell />
                 </TableRow>
 
                 {/* Grand Total Assets */}
-                <TableRow className="font-extrabold text-sm text-blue-700 dark:text-blue-400 bg-blue-100/60 dark:bg-blue-900/40 border-t-2 border-blue-500">
-                  <TableCell>TOTAL ASSETS</TableCell>
+                <TableRow className="font-extrabold text-sm text-emerald-800 dark:text-emerald-300 bg-emerald-200/60 dark:bg-emerald-900/60 border-t-2 border-emerald-500">
+                  <TableCell>🟢 TOTAL ASSETS (कुल संपत्ति)</TableCell>
                   <TableCell />
-                  <TableCell className="text-right">{formatINR(realData.totalAssets)}</TableCell>
-                  <TableCell className="text-right">{formatINR(compData?.totalAssets || realData.nonCurrentAssets)}</TableCell>
+                  <TableCell className="text-right font-black">{formatINR(realData.totalAssets)}</TableCell>
+                  <TableCell />
                 </TableRow>
               </TableBody>
             </Table>
           </div>
         </div>
 
-        {/* Column 2: EQUITY & LIABILITIES Schedule */}
-        <div className="lg:col-span-4 rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-xs space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-display text-base font-bold text-emerald-600 uppercase tracking-wider">
-              EQUITY &amp; LIABILITIES
-            </h3>
-            <span className="text-[11px] font-semibold text-muted-foreground">Schedule 10 to 18</span>
+        {/* Column 2: EQUITY & LIABILITIES Schedule (SOFT RED TINT) */}
+        <div className="lg:col-span-6 rounded-2xl border border-rose-500/30 bg-card p-4 sm:p-5 shadow-xs space-y-4">
+          <div className="flex items-center justify-between p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20">
+            <div>
+              <h3 className="font-display text-base font-extrabold text-rose-700 dark:text-rose-400 uppercase tracking-wider flex items-center gap-2">
+                <span>🔴</span> EQUITY &amp; LIABILITIES (देनदारी - उधारी &amp; लोन)
+              </h3>
+              <p className="text-[11px] text-rose-600/90 font-medium">
+                यह आपका बैंक लोन, सप्लायर का बकाया, और बिज़नेस में लगा कैपिटल है।
+              </p>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => navigate({ to: "/accounting/ledgers" })}
+              className="text-xs font-bold border-rose-500/30 text-rose-700 dark:text-rose-400 hover:bg-rose-500/10"
+            >
+              + Ledger Entry <ExternalLink className="ml-1 h-3 w-3" />
+            </Button>
           </div>
+
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="border-b border-border/80">
-                  <TableHead className="text-xs font-bold text-foreground">Particulars</TableHead>
+                <TableRow className="border-b border-rose-500/20 bg-rose-50/40 dark:bg-rose-950/20">
+                  <TableHead className="text-xs font-bold text-rose-800 dark:text-rose-300">Particulars (खाता)</TableHead>
                   <TableHead className="text-xs font-bold text-center w-12">Note</TableHead>
-                  <TableHead className="text-xs font-bold text-right">{periodLabel}</TableHead>
-                  <TableHead className="text-xs font-bold text-right">{compLabel}</TableHead>
+                  <TableHead className="text-xs font-bold text-right text-rose-800 dark:text-rose-300">{periodLabel}</TableHead>
+                  <TableHead className="text-xs font-bold text-center w-24">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody className="text-xs">
                 {/* Equity */}
-                <TableRow className="bg-muted/20">
-                  <TableCell colSpan={4} className="font-bold text-foreground py-2">
-                    Equity
+                <TableRow className="bg-rose-100/30 dark:bg-rose-900/20">
+                  <TableCell colSpan={4} className="font-extrabold text-rose-800 dark:text-rose-300 py-2">
+                    Equity (पूंजी &amp; मालिक का पैसा)
                   </TableCell>
                 </TableRow>
-                <TableRow>
-                  <TableCell className="pl-4 font-medium">Share Capital / Capital Account</TableCell>
+
+                <TableRow className="hover:bg-rose-50/30">
+                  <TableCell className="pl-4 font-semibold text-foreground">
+                    Share Capital / Owner's Capital (मालिक द्वारा लगाई पूंजी)
+                  </TableCell>
                   <TableCell className="text-center font-mono text-[11px] text-muted-foreground">10</TableCell>
-                  <TableCell className="text-right font-bold text-foreground">{formatINR(realData.shareCapital)}</TableCell>
-                  <TableCell className="text-right text-muted-foreground">{formatINR(realData.shareCapital)}</TableCell>
+                  <TableCell className="text-right font-bold text-rose-700 dark:text-rose-400">{formatINR(realData.shareCapital)}</TableCell>
+                  <TableCell className="text-center">
+                    <Link to="/accounting/ledgers" className="text-[11px] font-bold text-rose-600 hover:underline inline-flex items-center gap-1">
+                      Post <ExternalLink className="h-3 w-3" />
+                    </Link>
+                  </TableCell>
                 </TableRow>
-                <TableRow>
-                  <TableCell className="pl-4 font-medium">Reserves &amp; Surplus (Net Profit)</TableCell>
+
+                <TableRow className="hover:bg-rose-50/30">
+                  <TableCell className="pl-4 font-semibold text-foreground">
+                    Reserves &amp; Surplus (बिज़नेस का मुनाफा/मुनाफा बैलेंस)
+                  </TableCell>
                   <TableCell className="text-center font-mono text-[11px] text-muted-foreground">11</TableCell>
-                  <TableCell className="text-right font-bold text-foreground">{formatINR(realData.reservesSurplus)}</TableCell>
-                  <TableCell className="text-right text-muted-foreground">{formatINR(realData.reservesSurplus)}</TableCell>
+                  <TableCell className="text-right font-bold text-rose-700 dark:text-rose-400">{formatINR(realData.reservesSurplus)}</TableCell>
+                  <TableCell className="text-center">
+                    <Link to="/reports" search={{ tab: "pnl" }} className="text-[11px] font-bold text-rose-600 hover:underline inline-flex items-center gap-1">
+                      P&amp;L <ExternalLink className="h-3 w-3" />
+                    </Link>
+                  </TableCell>
                 </TableRow>
-                <TableRow className="font-bold text-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20">
+
+                <TableRow className="font-bold text-rose-700 dark:text-rose-400 bg-rose-100/50 dark:bg-rose-900/30">
                   <TableCell>Total Equity</TableCell>
                   <TableCell />
                   <TableCell className="text-right">{formatINR(realData.totalEquity)}</TableCell>
-                  <TableCell className="text-right">{formatINR(realData.totalEquity)}</TableCell>
+                  <TableCell />
                 </TableRow>
 
                 {/* Non-Current Liabilities */}
-                <TableRow className="bg-muted/20">
-                  <TableCell colSpan={4} className="font-bold text-foreground py-2 mt-2">
-                    Non-Current Liabilities
+                <TableRow className="bg-rose-100/30 dark:bg-rose-900/20">
+                  <TableCell colSpan={4} className="font-extrabold text-rose-800 dark:text-rose-300 py-2 mt-2">
+                    Non-Current Liabilities (लॉन्ग-टर्म लोन &amp; कर्ज)
                   </TableCell>
                 </TableRow>
-                <TableRow>
-                  <TableCell className="pl-4 font-medium">Long Term Borrowings &amp; Loans</TableCell>
+
+                <TableRow className="hover:bg-rose-50/30">
+                  <TableCell className="pl-4 font-semibold text-foreground">
+                    Long Term Borrowings (बैंक लोन &amp; फाइनेंस)
+                  </TableCell>
                   <TableCell className="text-center font-mono text-[11px] text-muted-foreground">12</TableCell>
-                  <TableCell className="text-right font-bold text-foreground">{formatINR(realData.nonCurrentLiabilities)}</TableCell>
-                  <TableCell className="text-right text-muted-foreground">{formatINR(realData.nonCurrentLiabilities)}</TableCell>
+                  <TableCell className="text-right font-bold text-rose-700 dark:text-rose-400">{formatINR(realData.nonCurrentLiabilities)}</TableCell>
+                  <TableCell className="text-center">
+                    <Link to="/accounting/ledgers" className="text-[11px] font-bold text-rose-600 hover:underline inline-flex items-center gap-1">
+                      Post <ExternalLink className="h-3 w-3" />
+                    </Link>
+                  </TableCell>
                 </TableRow>
-                <TableRow className="font-bold text-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20">
+
+                <TableRow className="font-bold text-rose-700 dark:text-rose-400 bg-rose-100/50 dark:bg-rose-900/30">
                   <TableCell>Total Non-Current Liabilities</TableCell>
                   <TableCell />
                   <TableCell className="text-right">{formatINR(realData.nonCurrentLiabilities)}</TableCell>
-                  <TableCell className="text-right">{formatINR(realData.nonCurrentLiabilities)}</TableCell>
+                  <TableCell />
                 </TableRow>
 
                 {/* Current Liabilities */}
-                <TableRow className="bg-muted/20">
-                  <TableCell colSpan={4} className="font-bold text-foreground py-2 mt-2">
-                    Current Liabilities
+                <TableRow className="bg-rose-100/30 dark:bg-rose-900/20">
+                  <TableCell colSpan={4} className="font-extrabold text-rose-800 dark:text-rose-300 py-2 mt-2">
+                    Current Liabilities (शॉर्ट-टर्म देनदारी)
                   </TableCell>
                 </TableRow>
-                <TableRow>
-                  <TableCell className="pl-4 font-semibold text-foreground">Trade Payables (Unpaid Bills)</TableCell>
+
+                <TableRow className="hover:bg-rose-50/30">
+                  <TableCell className="pl-4 font-semibold text-foreground">Trade Payables (सप्लायरों का बकाया बिल)</TableCell>
                   <TableCell className="text-center font-mono text-[11px] text-muted-foreground">13</TableCell>
-                  <TableCell className="text-right font-bold text-foreground">{formatINR(realData.tradePayables)}</TableCell>
-                  <TableCell className="text-right text-muted-foreground">{formatINR(compData?.tradePayables || 0)}</TableCell>
+                  <TableCell className="text-right font-bold text-rose-700 dark:text-rose-400">{formatINR(realData.tradePayables)}</TableCell>
+                  <TableCell className="text-center">
+                    <Link to="/purchases" className="text-[11px] font-bold text-rose-600 hover:underline inline-flex items-center gap-1">
+                      Bills <ExternalLink className="h-3 w-3" />
+                    </Link>
+                  </TableCell>
                 </TableRow>
-                <TableRow>
-                  <TableCell className="pl-4 font-medium">Output GST Payable (Net Tax)</TableCell>
+
+                <TableRow className="hover:bg-rose-50/30">
+                  <TableCell className="pl-4 font-semibold text-foreground">Output GST Payable (सरकार को टैक्स देनदारी)</TableCell>
                   <TableCell className="text-center font-mono text-[11px] text-muted-foreground">14</TableCell>
-                  <TableCell className="text-right font-bold text-foreground">{formatINR(realData.netGstPayable)}</TableCell>
-                  <TableCell className="text-right text-muted-foreground">{formatINR(realData.netGstPayable)}</TableCell>
+                  <TableCell className="text-right font-bold text-rose-700 dark:text-rose-400">{formatINR(realData.netGstPayable)}</TableCell>
+                  <TableCell className="text-center">
+                    <Link to="/reports" search={{ tab: "pnl" }} className="text-[11px] font-bold text-rose-600 hover:underline inline-flex items-center gap-1">
+                      GST <ExternalLink className="h-3 w-3" />
+                    </Link>
+                  </TableCell>
                 </TableRow>
-                <TableRow className="font-bold text-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/20">
+
+                <TableRow className="font-bold text-rose-700 dark:text-rose-400 bg-rose-100/50 dark:bg-rose-900/30">
                   <TableCell>Total Current Liabilities</TableCell>
                   <TableCell />
                   <TableCell className="text-right">{formatINR(realData.currentLiabilities)}</TableCell>
-                  <TableCell className="text-right">{formatINR(realData.currentLiabilities)}</TableCell>
+                  <TableCell />
                 </TableRow>
 
                 {/* Grand Total Equity & Liabilities */}
-                <TableRow className="font-extrabold text-sm text-emerald-700 dark:text-emerald-400 bg-emerald-100/60 dark:bg-emerald-900/40 border-t-2 border-emerald-500">
-                  <TableCell>TOTAL EQUITY &amp; LIABILITIES</TableCell>
+                <TableRow className="font-extrabold text-sm text-rose-800 dark:text-rose-300 bg-rose-200/60 dark:bg-rose-900/60 border-t-2 border-rose-500">
+                  <TableCell>🔴 TOTAL EQUITY &amp; LIABILITIES (कुल देनदारी)</TableCell>
                   <TableCell />
-                  <TableCell className="text-right">{formatINR(realData.totalLiabilitiesAndEquity)}</TableCell>
-                  <TableCell className="text-right">{formatINR(realData.totalLiabilitiesAndEquity)}</TableCell>
+                  <TableCell className="text-right font-black">{formatINR(realData.totalLiabilitiesAndEquity)}</TableCell>
+                  <TableCell />
                 </TableRow>
               </TableBody>
             </Table>
-          </div>
-        </div>
-
-        {/* Column 3: Key Ratios & AI Insights (Right Column) */}
-        <div className="lg:col-span-3 space-y-6">
-          {/* Key Ratios Card */}
-          <div className="rounded-2xl border border-border bg-card p-5 shadow-xs space-y-4">
-            <h4 className="font-display text-sm font-bold text-foreground">Key Ratios</h4>
-            <div className="space-y-3 text-xs">
-              <div className="flex items-center justify-between border-b border-border/60 pb-2">
-                <span className="text-muted-foreground font-medium">Current Ratio</span>
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-foreground">{realData.currentRatio}</span>
-                  <Badge className="bg-emerald-500/10 text-emerald-600 border-none px-1.5 py-0 text-[10px]">Ratio</Badge>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between border-b border-border/60 pb-2">
-                <span className="text-muted-foreground font-medium">Quick Ratio</span>
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-foreground">{realData.quickRatio}</span>
-                  <Badge className="bg-emerald-500/10 text-emerald-600 border-none px-1.5 py-0 text-[10px]">Ratio</Badge>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between border-b border-border/60 pb-2">
-                <span className="text-muted-foreground font-medium">Debt to Equity Ratio</span>
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-foreground">{realData.debtToEquity}</span>
-                  <Badge className="bg-blue-500/10 text-blue-600 border-none px-1.5 py-0 text-[10px]">Leverage</Badge>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between border-b border-border/60 pb-2">
-                <span className="text-muted-foreground font-medium">Return on Equity (ROE)</span>
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-foreground">{realData.roe}%</span>
-                  <Badge className="bg-emerald-500/10 text-emerald-600 border-none px-1.5 py-0 text-[10px]">Return</Badge>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between border-b border-border/60 pb-2">
-                <span className="text-muted-foreground font-medium">Inventory Turnover</span>
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-foreground">{realData.inventoryTurnover}</span>
-                  <Badge className="bg-emerald-500/10 text-emerald-600 border-none px-1.5 py-0 text-[10px]">Times</Badge>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between pb-1">
-                <span className="text-muted-foreground font-medium">Receivables Turnover</span>
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-foreground">{realData.receivablesTurnover}</span>
-                  <Badge className="bg-amber-500/10 text-amber-600 border-none px-1.5 py-0 text-[10px]">Times</Badge>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* AI Insights Card */}
-          <div className="rounded-2xl border border-border bg-card p-5 shadow-xs space-y-4">
-            <div className="flex items-center gap-2 text-primary font-display text-sm font-bold">
-              <Sparkles className="h-4 w-4" /> Real Insights
-            </div>
-
-            <div className="space-y-3 text-xs">
-              <div className="flex items-start gap-2.5">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
-                <p className="text-muted-foreground leading-relaxed">
-                  Real Sales Revenue for selected period is <strong className="text-foreground">{formatINR(realData.taxableSales)}</strong> with Net Profit of <strong className="text-foreground">{formatINR(realData.netProfit)}</strong>.
-                </p>
-              </div>
-
-              {realData.tradeReceivables > 0 ? (
-                <div className="flex items-start gap-2.5">
-                  <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
-                  <p className="text-muted-foreground leading-relaxed">
-                    Uncollected Sales (Trade Receivables) stand at <strong className="text-foreground">{formatINR(realData.tradeReceivables)}</strong>. Send WhatsApp reminders for faster collections.
-                  </p>
-                </div>
-              ) : (
-                <div className="flex items-start gap-2.5">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
-                  <p className="text-muted-foreground leading-relaxed">
-                    No pending trade receivables! All invoices for selected period are fully collected.
-                  </p>
-                </div>
-              )}
-
-              <div className="flex items-start gap-2.5">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
-                <p className="text-muted-foreground leading-relaxed">
-                  Current Liquid Cash &amp; Bank Balance is <strong className="text-foreground">{formatINR(realData.cashBankBalance)}</strong> calculated from actual payment vouchers.
-                </p>
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -1213,7 +1179,7 @@ function BalanceSheetDashboard({
       {/* Footer Info Bar */}
       <div className="flex flex-col sm:flex-row items-center justify-between text-xs text-muted-foreground border-t border-border/60 pt-4 gap-2">
         <div className="flex items-center gap-2">
-          <span>🔒 100% Real DB Data &amp; User Schedules. No dummy/estimated numbers.</span>
+          <span>🔒 100% Dynamic DB Ledger Postings. Green = Assets (संपत्ति), Light Red = Liabilities (देनदारी).</span>
         </div>
         <div className="flex items-center gap-2">
           <span>Active Period: {periodLabel}</span>
@@ -1221,155 +1187,6 @@ function BalanceSheetDashboard({
         </div>
       </div>
     </div>
-  );
-}
-
-{/* EDIT BALANCE SHEET SCHEDULES DIALOG COMPONENT */}
-function BalanceSheetEditDialog({
-  initialValues,
-  onSave,
-}: {
-  initialValues: BalanceSheetSchedules;
-  onSave: (updated: BalanceSheetSchedules) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const [form, setForm] = useState<BalanceSheetSchedules>(initialValues);
-
-  useEffect(() => {
-    setForm(initialValues);
-  }, [initialValues, open]);
-
-  const handleSave = () => {
-    onSave(form);
-    setOpen(false);
-  };
-
-  const handleReset = () => {
-    const resetVals = DEFAULT_SCHEDULES;
-    setForm(resetVals);
-    onSave(resetVals);
-    setOpen(false);
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2 font-bold text-xs shadow-xs border-primary/30 hover:bg-primary/5">
-          <Pencil className="h-3.5 w-3.5 text-primary" /> Edit Assets &amp; Capital
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-md sm:max-w-lg rounded-2xl">
-        <DialogHeader>
-          <DialogTitle className="font-display text-xl font-bold flex items-center gap-2">
-            <Building2 className="h-5 w-5 text-primary" /> Manage Balance Sheet Schedules
-          </DialogTitle>
-          <DialogDescription className="text-xs text-muted-foreground">
-            Apni company ke real Non-Current Assets (Property, Investments) aur Share Capital/Loans enter karein. Agar koi input blank rahega toh uska amount ₹0.00 dikhega.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-4 py-3 text-xs max-h-[60vh] overflow-y-auto pr-1">
-          {/* Section 1: Non-Current Assets */}
-          <div className="space-y-3 border-b border-border pb-4">
-            <div className="font-bold text-blue-600 uppercase tracking-wider text-[11px]">
-              Non-Current Assets Schedules
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">1. Property, Plant &amp; Equipment (₹)</Label>
-                <Input
-                  type="number"
-                  placeholder="0"
-                  value={form.propertyPlantEquip || ""}
-                  onChange={(e) => setForm({ ...form, propertyPlantEquip: Number(e.target.value) || 0 })}
-                />
-                <span className="text-[10px] text-muted-foreground">Land, Machinery, Furniture, Vehicles</span>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">2. Intangible Assets (₹)</Label>
-                <Input
-                  type="number"
-                  placeholder="0"
-                  value={form.intangibleAssets || ""}
-                  onChange={(e) => setForm({ ...form, intangibleAssets: Number(e.target.value) || 0 })}
-                />
-                <span className="text-[10px] text-muted-foreground">Software, Patents, Trademarks</span>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">3. Investments &amp; FDs (₹)</Label>
-                <Input
-                  type="number"
-                  placeholder="0"
-                  value={form.investments || ""}
-                  onChange={(e) => setForm({ ...form, investments: Number(e.target.value) || 0 })}
-                />
-                <span className="text-[10px] text-muted-foreground">Mutual Funds, Fixed Deposits, Shares</span>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">4. Long Term Loans (₹)</Label>
-                <Input
-                  type="number"
-                  placeholder="0"
-                  value={form.longTermLoans || ""}
-                  onChange={(e) => setForm({ ...form, longTermLoans: Number(e.target.value) || 0 })}
-                />
-                <span className="text-[10px] text-muted-foreground">Long-term deposits &amp; advances given</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Section 2: Capital & Liabilities */}
-          <div className="space-y-3">
-            <div className="font-bold text-emerald-600 uppercase tracking-wider text-[11px]">
-              Equity &amp; Borrowings Schedules
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">10. Share Capital / Owner's Capital (₹)</Label>
-                <Input
-                  type="number"
-                  placeholder="0"
-                  value={form.shareCapital || ""}
-                  onChange={(e) => setForm({ ...form, shareCapital: Number(e.target.value) || 0 })}
-                />
-                <span className="text-[10px] text-muted-foreground">Initial invested capital in business</span>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">12. Long Term Borrowings (₹)</Label>
-                <Input
-                  type="number"
-                  placeholder="0"
-                  value={form.nonCurrentLiabilities || ""}
-                  onChange={(e) => setForm({ ...form, nonCurrentLiabilities: Number(e.target.value) || 0 })}
-                />
-                <span className="text-[10px] text-muted-foreground">Bank loans &amp; long term liabilities</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <DialogFooter className="flex flex-row justify-between items-center pt-3 border-t border-border">
-          <Button variant="ghost" size="sm" onClick={handleReset} className="text-destructive hover:bg-destructive/10 text-xs">
-            <RotateCcw className="h-3.5 w-3.5 mr-1" /> Reset to 0
-          </Button>
-
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => setOpen(false)} className="text-xs">
-              Cancel
-            </Button>
-            <Button size="sm" onClick={handleSave} className="gap-1.5 font-bold text-xs bg-primary hover:bg-primary/90">
-              <Save className="h-3.5 w-3.5" /> Save Schedule Inputs
-            </Button>
-          </div>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }
 
@@ -1420,11 +1237,11 @@ function ProfitAndLossView({ companyId, fyLabelText }: { companyId?: string; fyL
       </div>
 
       <div className="space-y-3 text-sm">
-        <RowR label="Revenue from Operations (Sales Taxable)" value={formatINR(salesTaxable)} />
-        <RowR label="Cost of Goods Sold (Purchases Taxable)" value={formatINR(purchTaxable)} sub />
+        <RowR label="Revenue from Operations (Sales Taxable)" value={formatINR(salesTaxable)} tone="success" />
+        <RowR label="Cost of Goods Sold (Purchases Taxable)" value={formatINR(purchTaxable)} sub tone="destructive" />
         <div className="border-t border-border my-2" />
-        <RowR label="Gross Profit" value={formatINR(grossProfit)} bold />
-        <RowR label="Operating &amp; Indirect Expenses" value={formatINR(expTotal)} sub />
+        <RowR label="Gross Profit" value={formatINR(grossProfit)} bold tone={grossProfit >= 0 ? "success" : "destructive"} />
+        <RowR label="Operating &amp; Indirect Expenses" value={formatINR(expTotal)} sub tone="destructive" />
         <div className="border-t border-border my-2" />
         <RowR
           label="Net Profit (Loss)"
@@ -1482,9 +1299,9 @@ function CashFlowView({ companyId }: { companyId?: string }) {
       </div>
 
       <div className="space-y-3 text-sm">
-        <RowR label="Cash Inflow from Sales Collections" value={formatINR(salesCollections)} />
-        <RowR label="Cash Outflow for Purchases" value={formatINR(purchPaid)} sub />
-        <RowR label="Cash Outflow for Expenses" value={formatINR(expPaid)} sub />
+        <RowR label="🟢 Cash Inflow from Sales Collections" value={formatINR(salesCollections)} tone="success" />
+        <RowR label="🔴 Cash Outflow for Purchases" value={formatINR(purchPaid)} sub tone="destructive" />
+        <RowR label="🔴 Cash Outflow for Expenses" value={formatINR(expPaid)} sub tone="destructive" />
         <div className="border-t border-border my-2" />
         <RowR
           label="Net Operating Cash Flow"
@@ -1552,24 +1369,24 @@ function TrialBalanceView({ companyId, navigate }: { companyId?: string; navigat
         </TableHeader>
         <TableBody>
           <TableRow>
-            <TableCell className="font-semibold">Sales Accounts</TableCell>
+            <TableCell className="font-semibold text-emerald-600">Sales Accounts (🟢 Inflow)</TableCell>
             <TableCell className="text-right">0.00</TableCell>
-            <TableCell className="text-right font-medium">{formatINR(totalSales)}</TableCell>
+            <TableCell className="text-right font-bold text-emerald-600">{formatINR(totalSales)}</TableCell>
           </TableRow>
           <TableRow>
-            <TableCell className="font-semibold">Purchase Accounts</TableCell>
-            <TableCell className="text-right font-medium">{formatINR(totalPurchases)}</TableCell>
+            <TableCell className="font-semibold text-rose-600">Purchase Accounts (🔴 Outflow)</TableCell>
+            <TableCell className="text-right font-bold text-rose-600">{formatINR(totalPurchases)}</TableCell>
             <TableCell className="text-right">0.00</TableCell>
           </TableRow>
           <TableRow>
-            <TableCell className="font-semibold">Direct &amp; Indirect Expenses</TableCell>
-            <TableCell className="text-right font-medium">{formatINR(totalExpenses)}</TableCell>
+            <TableCell className="font-semibold text-rose-600">Direct &amp; Indirect Expenses (🔴 Outflow)</TableCell>
+            <TableCell className="text-right font-bold text-rose-600">{formatINR(totalExpenses)}</TableCell>
             <TableCell className="text-right">0.00</TableCell>
           </TableRow>
           <TableRow className="font-bold bg-muted/40">
             <TableCell>Total Trial Balance</TableCell>
-            <TableCell className="text-right">{formatINR(totalPurchases + totalExpenses)}</TableCell>
-            <TableCell className="text-right">{formatINR(totalSales)}</TableCell>
+            <TableCell className="text-right font-bold">{formatINR(totalPurchases + totalExpenses)}</TableCell>
+            <TableCell className="text-right font-bold">{formatINR(totalSales)}</TableCell>
           </TableRow>
         </TableBody>
       </Table>
@@ -1593,10 +1410,10 @@ function LedgerView({ companyId, navigate }: { companyId?: string; navigate: any
       <div className="flex items-center justify-between">
         <div>
           <h2 className="font-display text-xl font-bold font-sans">Ledger Accounts</h2>
-          <p className="text-xs text-muted-foreground">Party &amp; Account Ledgers</p>
+          <p className="text-xs text-muted-foreground font-medium">Party &amp; Business Account Ledgers</p>
         </div>
-        <Button size="sm" onClick={() => navigate({ to: "/accounting/ledgers" })}>
-          View All Party Ledgers <ChevronRight className="ml-1 h-4 w-4" />
+        <Button size="sm" onClick={() => navigate({ to: "/accounting/ledgers" })} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold">
+          View &amp; Create Ledgers <ChevronRight className="ml-1 h-4 w-4" />
         </Button>
       </div>
 
@@ -1613,7 +1430,7 @@ function LedgerView({ companyId, navigate }: { companyId?: string; navigate: any
             <TableRow key={p.id}>
               <TableCell className="font-semibold">{p.name}</TableCell>
               <TableCell className="capitalize">{p.type ?? "Customer/Supplier"}</TableCell>
-              <TableCell className="text-right font-mono">{formatINR(p.opening_balance || 0)}</TableCell>
+              <TableCell className="text-right font-mono font-bold">{formatINR(p.opening_balance || 0)}</TableCell>
             </TableRow>
           ))}
           {(!parties || parties.length === 0) && (
@@ -1644,13 +1461,13 @@ function RowR({
 }) {
   return (
     <div
-      className={`flex justify-between ${bold ? "font-display text-base font-bold" : ""} ${tone === "success" ? "text-emerald-600" : tone === "destructive" ? "text-destructive" : ""}`}
+      className={`flex justify-between ${bold ? "font-display text-base font-bold" : ""} ${tone === "success" ? "text-emerald-600" : tone === "destructive" ? "text-rose-600" : ""}`}
     >
       <span className={sub ? "text-muted-foreground" : ""}>
         {sub ? "(−) " : ""}
         {label}
       </span>
-      <span>{value}</span>
+      <span className="font-bold">{value}</span>
     </div>
   );
 }
