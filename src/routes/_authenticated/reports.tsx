@@ -1267,8 +1267,181 @@ function BalanceSheetDashboard({
         </div>
       </div>
 
+      {/* PRINT-ONLY FORMAL CA FINANCIAL STATEMENT MATCHING SCREENSHOT 3 EXACTLY */}
+      <div className="hidden print:block font-sans text-xs text-black space-y-6 pt-4">
+        {/* Header */}
+        <div className="text-center space-y-1 pb-3 border-b-2 border-black">
+          <h1 className="text-xl font-extrabold uppercase tracking-wider">{companyName}</h1>
+          <p className="text-xs font-bold uppercase text-zinc-800">
+            NOTES FORMING PART OF THE STANDALONE FINANCIAL STATEMENTS FOR THE YEAR ENDED MARCH 31, 2026
+          </p>
+          <div className="flex justify-end text-[11px] font-mono font-semibold pt-1">
+            <span>Amount in Rs</span>
+          </div>
+        </div>
+
+        {/* Schedule III Tables with borderless rows matching Screenshot 3 */}
+        <div className="space-y-4">
+          <div className="border-t border-b border-black py-1.5 font-bold flex justify-between text-xs">
+            <span className="w-12">Note</span>
+            <span className="flex-1 px-4">Particulars</span>
+            <span className="w-36 text-right">As at March 31, 2026</span>
+            <span className="w-36 text-right">As at March 31, 2025</span>
+          </div>
+
+          {/* ASSETS SECTION */}
+          <div className="space-y-1.5">
+            <h3 className="font-extrabold uppercase tracking-wide text-xs">ASSETS</h3>
+            <div className="pl-3 space-y-1">
+              <p className="font-bold text-[11px]">I. Non-Current Assets</p>
+              <div className="flex justify-between pl-4 py-0.5">
+                <span className="w-12 font-mono">1</span>
+                <span className="flex-1">(a) Property, Plant &amp; Equipment</span>
+                <span className="w-36 text-right font-mono font-semibold">{formatINR(realData.propertyPlantEquip)}</span>
+                <span className="w-36 text-right font-mono text-zinc-700">{formatINR(compData?.propertyPlantEquip ?? 0)}</span>
+              </div>
+              <div className="flex justify-between pl-4 py-0.5">
+                <span className="w-12 font-mono">2</span>
+                <span className="flex-1">(b) Capital Work in Progress</span>
+                <span className="w-36 text-right font-mono font-semibold">{formatINR(0)}</span>
+                <span className="w-36 text-right font-mono text-zinc-700">{formatINR(0)}</span>
+              </div>
+              <div className="flex justify-between pl-4 py-0.5">
+                <span className="w-12 font-mono">3</span>
+                <span className="flex-1">(c) Intangible Assets</span>
+                <span className="w-36 text-right font-mono font-semibold">{formatINR(realData.intangibleAssets)}</span>
+                <span className="w-36 text-right font-mono text-zinc-700">{formatINR(compData?.intangibleAssets ?? 0)}</span>
+              </div>
+              <div className="flex justify-between pl-4 py-0.5">
+                <span className="w-12 font-mono">4</span>
+                <span className="flex-1">(d) Financial Assets - Investments</span>
+                <span className="w-36 text-right font-mono font-semibold">{formatINR(realData.investments)}</span>
+                <span className="w-36 text-right font-mono text-zinc-700">{formatINR(compData?.investments ?? 0)}</span>
+              </div>
+              <div className="flex justify-between pl-4 py-0.5">
+                <span className="w-12 font-mono">6</span>
+                <span className="flex-1">(e) Long Term Loans &amp; Advances</span>
+                <span className="w-36 text-right font-mono font-semibold">{formatINR(realData.longTermLoans)}</span>
+                <span className="w-36 text-right font-mono text-zinc-700">{formatINR(compData?.longTermLoans ?? 0)}</span>
+              </div>
+
+              <div className="flex justify-between font-bold border-t border-b border-black py-1 my-1">
+                <span className="w-12" />
+                <span className="flex-1">Total Non-Current Assets</span>
+                <span className="w-36 text-right font-mono">{formatINR(realData.nonCurrentAssets)}</span>
+                <span className="w-36 text-right font-mono">{formatINR(compData?.nonCurrentAssets ?? 0)}</span>
+              </div>
+
+              <p className="font-bold text-[11px] pt-2">II. Current Assets</p>
+              <div className="flex justify-between pl-4 py-0.5">
+                <span className="w-12 font-mono">7</span>
+                <span className="flex-1">(a) Inventories</span>
+                <span className="w-36 text-right font-mono font-semibold">{formatINR(realData.inventories)}</span>
+                <span className="w-36 text-right font-mono text-zinc-700">{formatINR(compData?.inventories ?? 0)}</span>
+              </div>
+              <div className="flex justify-between pl-4 py-0.5">
+                <span className="w-12 font-mono">8</span>
+                <span className="flex-1">(b) Financial Assets - Trade Receivables</span>
+                <span className="w-36 text-right font-mono font-semibold">{formatINR(realData.tradeReceivables)}</span>
+                <span className="w-36 text-right font-mono text-zinc-700">{formatINR(compData?.tradeReceivables ?? 0)}</span>
+              </div>
+              <div className="flex justify-between pl-4 py-0.5">
+                <span className="w-12 font-mono">9</span>
+                <span className="flex-1">(c) Cash &amp; Cash Equivalents</span>
+                <span className="w-36 text-right font-mono font-semibold">{formatINR(realData.cashBankBalance)}</span>
+                <span className="w-36 text-right font-mono text-zinc-700">{formatINR(compData?.cashBankBalance ?? 0)}</span>
+              </div>
+
+              <div className="flex justify-between font-bold border-t border-b border-black py-1 my-1">
+                <span className="w-12" />
+                <span className="flex-1">Total Current Assets</span>
+                <span className="w-36 text-right font-mono">{formatINR(realData.currentAssets)}</span>
+                <span className="w-36 text-right font-mono">{formatINR(compData?.currentAssets ?? 0)}</span>
+              </div>
+
+              <div className="flex justify-between font-extrabold text-sm border-t border-b-2 border-black py-1.5 mt-2">
+                <span className="w-12" />
+                <span className="flex-1">TOTAL ASSETS</span>
+                <span className="w-36 text-right font-mono">{formatINR(realData.totalAssets)}</span>
+                <span className="w-36 text-right font-mono">{formatINR(compData?.totalAssets ?? 0)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* EQUITY AND LIABILITIES SECTION */}
+          <div className="space-y-1.5 pt-4">
+            <h3 className="font-extrabold uppercase tracking-wide text-xs">EQUITY AND LIABILITIES</h3>
+            <div className="pl-3 space-y-1">
+              <p className="font-bold text-[11px]">I. Equity</p>
+              <div className="flex justify-between pl-4 py-0.5">
+                <span className="w-12 font-mono">12</span>
+                <span className="flex-1">(a) Equity Share Capital / Owner's Capital</span>
+                <span className="w-36 text-right font-mono font-semibold">{formatINR(realData.shareCapital)}</span>
+                <span className="w-36 text-right font-mono text-zinc-700">{formatINR(compData?.shareCapital ?? 0)}</span>
+              </div>
+              <div className="flex justify-between pl-4 py-0.5">
+                <span className="w-12 font-mono">13</span>
+                <span className="flex-1">(b) Other Equity (Reserves &amp; Surplus)</span>
+                <span className="w-36 text-right font-mono font-semibold">{formatINR(realData.reservesSurplus)}</span>
+                <span className="w-36 text-right font-mono text-zinc-700">{formatINR(compData?.reservesSurplus ?? 0)}</span>
+              </div>
+
+              <div className="flex justify-between font-bold border-t border-b border-black py-1 my-1">
+                <span className="w-12" />
+                <span className="flex-1">Total Equity</span>
+                <span className="w-36 text-right font-mono">{formatINR(realData.totalEquity)}</span>
+                <span className="w-36 text-right font-mono">{formatINR(compData?.totalEquity ?? 0)}</span>
+              </div>
+
+              <p className="font-bold text-[11px] pt-2">II. Non-Current Liabilities</p>
+              <div className="flex justify-between pl-4 py-0.5">
+                <span className="w-12 font-mono">14</span>
+                <span className="flex-1">(a) Long Term Borrowings</span>
+                <span className="w-36 text-right font-mono font-semibold">{formatINR(realData.nonCurrentLiabilities)}</span>
+                <span className="w-36 text-right font-mono text-zinc-700">{formatINR(compData?.nonCurrentLiabilities ?? 0)}</span>
+              </div>
+
+              <div className="flex justify-between font-bold border-t border-b border-black py-1 my-1">
+                <span className="w-12" />
+                <span className="flex-1">Total Non-Current Liabilities</span>
+                <span className="w-36 text-right font-mono">{formatINR(realData.nonCurrentLiabilities)}</span>
+                <span className="w-36 text-right font-mono">{formatINR(compData?.nonCurrentLiabilities ?? 0)}</span>
+              </div>
+
+              <p className="font-bold text-[11px] pt-2">III. Current Liabilities</p>
+              <div className="flex justify-between pl-4 py-0.5">
+                <span className="w-12 font-mono">17</span>
+                <span className="flex-1">(a) Trade Payables</span>
+                <span className="w-36 text-right font-mono font-semibold">{formatINR(realData.tradePayables)}</span>
+                <span className="w-36 text-right font-mono text-zinc-700">{formatINR(compData?.tradePayables ?? 0)}</span>
+              </div>
+              <div className="flex justify-between pl-4 py-0.5">
+                <span className="w-12 font-mono">19</span>
+                <span className="flex-1">(b) Short Term Provisions &amp; Output GST</span>
+                <span className="w-36 text-right font-mono font-semibold">{formatINR(realData.netGstPayable)}</span>
+                <span className="w-36 text-right font-mono text-zinc-700">{formatINR(0)}</span>
+              </div>
+
+              <div className="flex justify-between font-bold border-t border-b border-black py-1 my-1">
+                <span className="w-12" />
+                <span className="flex-1">Total Current Liabilities</span>
+                <span className="w-36 text-right font-mono">{formatINR(realData.currentLiabilities)}</span>
+                <span className="w-36 text-right font-mono">{formatINR(compData?.currentLiabilities ?? 0)}</span>
+              </div>
+
+              <div className="flex justify-between font-extrabold text-sm border-t border-b-2 border-black py-1.5 mt-2">
+                <span className="w-12" />
+                <span className="flex-1">TOTAL EQUITY AND LIABILITIES</span>
+                <span className="w-36 text-right font-mono">{formatINR(realData.totalLiabilitiesAndEquity)}</span>
+                <span className="w-36 text-right font-mono">{formatINR(compData?.totalLiabilitiesAndEquity ?? 0)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Footer Info Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between text-xs text-muted-foreground border-t border-border/60 pt-4 gap-2">
+      <div className="flex flex-col sm:flex-row items-center justify-between text-xs text-muted-foreground border-t border-border/60 pt-4 gap-2 no-print">
         <div className="flex items-center gap-2">
           <span>🔒 100% Dynamic Database Ledger Postings. Green = Assets (Inflows/Owned), Light Red = Liabilities (Outflows/Debt).</span>
         </div>
@@ -1277,6 +1450,15 @@ function BalanceSheetDashboard({
           <RefreshCw className="h-3.5 w-3.5 hover:rotate-180 transition-transform cursor-pointer text-primary" onClick={() => window.location.reload()} />
         </div>
       </div>
+
+      {/* ACTION DOCK PASSED WITH REAL LIVE DATA */}
+      <ReportsActionDock
+        currentTab="balance-sheet"
+        companyName={companyName}
+        realData={realData}
+        compData={compData}
+        periodLabel={periodLabel}
+      />
     </div>
   );
 }
@@ -1567,9 +1749,15 @@ function RowR({
 function ReportsActionDock({
   currentTab,
   companyName,
+  realData,
+  compData,
+  periodLabel,
 }: {
   currentTab: string;
   companyName: string;
+  realData?: any;
+  compData?: any;
+  periodLabel?: string;
 }) {
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
@@ -1601,52 +1789,45 @@ function ReportsActionDock({
     }, 200);
   };
 
-  // HANDLE CSV / REPORT FILE DOWNLOAD (EXACT BS1 SCHEDULE III FORMAT MATCHING USER EXCEL)
+  // HANDLE CSV / REPORT FILE DOWNLOAD (EXACT LIVE SCREEN DATA MATCHING USER SCREENSHOT 1 & 2)
   const handleDownload = () => {
     const filename = `${companyName.replace(/\s+/g, "_")}_${tabTitle.replace(/\s+/g, "_")}_BS1_${new Date().toISOString().slice(0, 10)}.csv`;
     let content = `"${companyName}"\n`;
     content += `"NOTES FORMING PART OF THE STANDALONE FINANCIAL STATEMENTS FOR THE YEAR ENDED MARCH 31, 2026"\n\n`;
 
+    const rd = realData || {};
+    const cd = compData || {};
+    const labelCurrent = periodLabel || "March 31 2026";
+
     if (currentTab === "balance-sheet") {
-      content += `,Note,Particulars,As at March 31 2026 (Amount in Rs),As at March 31 2025 (Amount in Rs)\n`;
-      content += `,3,SHARE CAPITAL,,\n`;
-      content += `,,AUTHORISED,,\n`;
-      content += `,,Equity Share Capital,,\n`;
-      content += `,,"149,900 Class A Equity Shares of Rs. 10/- each",1499000,1199000\n`;
-      content += `,,"100 Class B Equity Shares of Rs. 10/- each",1000,1000\n`;
-      content += `,,Preference Share Capital,,\n`;
-      content += `,,"66,450 Series A Compulsorily Convertible Preference Shares of Rs. 10 each",664500,664500\n`;
-      content += `,,"88,550 Series B Compulsorily Convertible Preference Shares of Rs. 10 each",885500,885500\n`;
-      content += `,,Total Authorised Capital,3049000,2749000\n\n`;
-
-      content += `,,ISSUED SUBSCRIBED AND FULLY PAID UP,,\n`;
-      content += `,,Equity Share Capital,,\n`;
-      content += `,,"102,590 Class A Equity Shares of Rs. 10/- each",1025900,1024900\n`;
-      content += `,,"100 Class B Equity Shares of Rs. 10/- each",1000,1000\n`;
-      content += `,,Preference Share capital,,\n`;
-      content += `,,"66,350 Series A Preference Shares of Rs. 10 each",663500,663500\n`;
-      content += `,,"85,195 Series B Preference Shares of Rs. 10 each",851950,851950\n`;
-      content += `,,Total Issued & Paid Up Capital,2542350,2541350\n\n`;
-
+      content += `,Note,Particulars,As at ${labelCurrent} (Amount in Rs),As at Previous Year (Amount in Rs)\n`;
       content += `,,ASSETS,,\n`;
-      content += `,1,Property Plant & Equipment,0.00,0.00\n`;
-      content += `,2,Capital Work in Progress,0.00,0.00\n`;
-      content += `,3,Intangible Assets,0.00,0.00\n`;
-      content += `,4,Investments,0.00,0.00\n`;
-      content += `,5,Deferred Tax Assets (Net),0.00,0.00\n`;
-      content += `,6,Long Term Loans & Advances,0.00,0.00\n`;
-      content += `,7,Inventories,0.00,0.00\n`;
-      content += `,8,Trade Receivables,0.00,0.00\n`;
-      content += `,9,Cash & Cash Equivalents,0.00,0.00\n`;
-      content += `,,Total Assets,0.00,0.00\n\n`;
+      content += `,1,Property Plant & Equipment,${rd.propertyPlantEquip || 0},${cd.propertyPlantEquip || 0}\n`;
+      content += `,2,Capital Work in Progress,0,0\n`;
+      content += `,3,Intangible Assets,${rd.intangibleAssets || 0},${cd.intangibleAssets || 0}\n`;
+      content += `,4,Investments,${rd.investments || 0},${cd.investments || 0}\n`;
+      content += `,5,Deferred Tax Assets (Net),0,0\n`;
+      content += `,6,Long Term Loans & Advances,${rd.longTermLoans || 0},${cd.longTermLoans || 0}\n`;
+      content += `,,Total Non-Current Assets,${rd.nonCurrentAssets || 0},${cd.nonCurrentAssets || 0}\n\n`;
+
+      content += `,7,Inventories,${rd.inventories || 0},${cd.inventories || 0}\n`;
+      content += `,8,Trade Receivables,${rd.tradeReceivables || 0},${cd.tradeReceivables || 0}\n`;
+      content += `,9,Cash & Cash Equivalents,${rd.cashBankBalance || 0},${cd.cashBankBalance || 0}\n`;
+      content += `,,Total Current Assets,${rd.currentAssets || 0},${cd.currentAssets || 0}\n`;
+      content += `,,TOTAL ASSETS,${rd.totalAssets || 0},${cd.totalAssets || 0}\n\n`;
 
       content += `,,EQUITY AND LIABILITIES,,\n`;
-      content += `,12,Share Capital / Owner Capital,0.00,0.00\n`;
-      content += `,13,Reserves & Surplus,0.00,0.00\n`;
-      content += `,14,Long Term Borrowings,0.00,0.00\n`;
-      content += `,17,Trade Payables,0.00,0.00\n`;
-      content += `,19,Short Term Provisions & Output GST,0.00,0.00\n`;
-      content += `,,Total Equity & Liabilities,0.00,0.00\n`;
+      content += `,12,Share Capital / Owner Capital,${rd.shareCapital || 0},${cd.shareCapital || 0}\n`;
+      content += `,13,Reserves & Surplus (Profit),${rd.reservesSurplus || 0},${cd.reservesSurplus || 0}\n`;
+      content += `,,Total Equity,${rd.totalEquity || 0},${cd.totalEquity || 0}\n\n`;
+
+      content += `,14,Long Term Borrowings,${rd.nonCurrentLiabilities || 0},${cd.nonCurrentLiabilities || 0}\n`;
+      content += `,,Total Non-Current Liabilities,${rd.nonCurrentLiabilities || 0},${cd.nonCurrentLiabilities || 0}\n\n`;
+
+      content += `,17,Trade Payables,${rd.tradePayables || 0},${cd.tradePayables || 0}\n`;
+      content += `,19,Short Term Provisions & Output GST,${rd.netGstPayable || 0},0\n`;
+      content += `,,Total Current Liabilities,${rd.currentLiabilities || 0},${cd.currentLiabilities || 0}\n`;
+      content += `,,TOTAL EQUITY AND LIABILITIES,${rd.totalLiabilitiesAndEquity || 0},${cd.totalLiabilitiesAndEquity || 0}\n`;
     } else {
       content += `Report Type,${tabTitle}\nStatus,Generated Successfully\n`;
     }
@@ -1659,7 +1840,7 @@ function ReportsActionDock({
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    toast.success(`${tabTitle} (BS1 Format) downloaded successfully!`);
+    toast.success(`${tabTitle} (BS1 Live Data) downloaded successfully!`);
   };
 
   // HANDLE EXPORT TO EXCEL
